@@ -1,0 +1,15 @@
+[project]
+name = "EpenguinOJ-fastapi"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "beautifulsoup4>=4.14.2",
+    "fastapi[standard]>=0.125.0",
+    "itsdangerous>=2.2.0",
+    "pwdlib[argon2]>=0.3.0",
+    "python-dotenv>=1.2.1",
+    "requests>=2.32.5",
+    "sqlmodel>=0.0.27",
+]

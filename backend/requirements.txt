@@ -1,0 +1,9 @@
+requests
+python-dotenv
+itsdangerous
+
+fastapi[standard]
+uvicorn
+
+sqlmodel
+pwdlib[argon2]
