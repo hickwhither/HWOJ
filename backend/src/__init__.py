@@ -41,8 +41,10 @@ def create_app(APP_NAME):
     from .routers.auth import router as auth_router
     from .routers.verify import router as verify_router
     from .routers.api import router as api_router
+    from .routers.judge import router as judge_router
     app.include_router(auth_router)
     app.include_router(verify_router)
     app.include_router(api_router)
+    app.include_router(judge_router)
 
     return app
