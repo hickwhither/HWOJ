@@ -1,9 +1,9 @@
 time_limit: 2000
 memory_limit: 512
 
-answer: answer
 checker: checker
 validator: validator
+answer: answer
 
 batches:
   1:
