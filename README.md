@@ -1,7 +1,9 @@
 EpenguinOJ (former know as Epenguin)
-Old repos
-https://github.com/hickwhither/epenguin-bulma
-https://github.com/hickwhither/epenguin-fastapi
+
+Scrapped repos:
+- https://github.com/hickwhither/epenguin-bulma
+- https://github.com/hickwhither/epenguin-fastapi
+
 
 DEMO: https://test.hw.io.vn/
 ![Home](Home.png)

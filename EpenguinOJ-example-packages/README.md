@@ -1,8 +1,8 @@
 # Tạo thông tin cho 1 package EPenguinOJ
 
-Sắp tới sẽ có phần dành cho polygon
+(Sắp tới sẽ có phần dành cho polygon)
 
-Thông tin cơ bản
+Thông tin cơ bản cho file .yml
 ```yml
 time_limit: 2000
 memory_limit: 512
