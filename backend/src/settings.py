@@ -1,0 +1,2 @@
+APP_NAME = "TBCOJ"
+ALLOWED_ORIGINS = ["*"]

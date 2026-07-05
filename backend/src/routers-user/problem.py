@@ -6,9 +6,9 @@ from sqlalchemy import func
 from .. import SessionDep, Problem
 from sqlmodel import select
 
-router = APIRouter(prefix="/api", tags=["frontend"])
+router = APIRouter(prefix="/p", tags=["frontend"])
 
-@router.get("/problems")
+@router.get("/")
 def problem_list(session: SessionDep):
     # total = session.exec(select(func.count()).select_from(Problem)).one()
     # problems = session.exec(select(Problem).offset(20 * p).limit(20)).all()
