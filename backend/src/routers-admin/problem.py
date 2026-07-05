@@ -7,7 +7,8 @@ from sqlmodel import select
 
 router = APIRouter(prefix="/admin/p", tags=["user"])
 
-os.makedirs("../problems", exist_ok=True)
+PROBLEMS_DIR = os.getenv("PROBLEMS_DIR", "/data/problems")
+os.makedirs(PROBLEMS_DIR, exist_ok=True)
 
 # -- MODELS --
 from database import Problem, ProblemShort

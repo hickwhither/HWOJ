@@ -1,6 +1,6 @@
 # EPenguinOJ Judge
 
-Judge worker lấy submission đang `Pending` từ backend, chấm bằng testcase trong thư mục problem, rồi gửi kết quả về backend.
+Judge worker lấy submission từ backend, chấm với testcase trong thư mục problem chung `/data/problems`, chạy chương trình thí sinh trong `isolate` sandbox bên trong Docker, rồi gửi kết quả về backend.
 
 ## Config
 
@@ -10,17 +10,20 @@ Copy `config.example.yml` thành `config.yml`:
 name: local-judge
 key: change-me
 server_url: http://127.0.0.1:8000
-problems_dir: ./problems
+problems_dir: /data/problems
 work_dir: ./tmp
 poll_interval: 3
 box_id: 0
+use_cgroups: true
+compile_time_limit: 20
+wall_time_extra: 1.0
 ```
 
-Backend cũng cần đặt cùng key qua biến môi trường `JUDGE_KEY`.
+`problems_dir` mặc định là `/data/problems`. Backend cũng tạo/đọc problem package ở `/data/problems` (có thể override bằng biến môi trường `PROBLEMS_DIR`).
 
 ## Problem folder
 
-Mỗi bài nằm trong `problems_dir/<problem_id>/problem.yml`. Test có thể khai báo theo example package:
+Mỗi bài nằm trong `/data/problems/<problem_id>/problem.yml`. Test có thể khai báo theo example package:
 
 ```yml
 id: apio24_a
@@ -34,19 +37,25 @@ testcases:
 
 Nếu không khai báo `testcases`, judge sẽ tự lấy các cặp `tests/*.in` và `tests/*.out` cùng tên.
 
-## Chạy judge
+## Chạy judge bằng Docker
+
+`isolate` cần quyền tạo sandbox/cgroup, vì vậy container judge nên chạy privileged và mount thư mục problem chung:
 
 ```bash
-python -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-python judge.py --config config.yml
+docker build -t epenguinoj-judge ./judge
+docker run --rm --privileged \
+  -v /data/problems:/data/problems \
+  -v "$(pwd)/judge/config.yml:/app/config.yml:ro" \
+  epenguinoj-judge
 ```
 
 Chạy một vòng để debug:
 
 ```bash
-python judge.py --config config.yml --once
+docker run --rm --privileged \
+  -v /data/problems:/data/problems \
+  -v "$(pwd)/judge/config.yml:/app/config.yml:ro" \
+  epenguinoj-judge python judge.py --config config.yml --once
 ```
 
 ## Judge API trên backend

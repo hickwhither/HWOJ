@@ -1,7 +1,10 @@
 name: local-judge
 key: change-me
 server_url: http://127.0.0.1:8000
-problems_dir: ./problems
+problems_dir: /data/problems
 work_dir: ./tmp
 poll_interval: 3
 box_id: 0
+use_cgroups: true
+compile_time_limit: 20
+wall_time_extra: 1.0
