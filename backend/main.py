@@ -1,2 +1,2 @@
 from src import create_app
-app = create_app("EPenguinOJ")
+app = create_app()

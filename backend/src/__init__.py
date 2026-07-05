@@ -5,16 +5,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
+from .settings import APP_NAME, ALLOWED_ORIGINS
 from dotenv import load_dotenv
 load_dotenv()
 
-from .database import *
+from database import init_db
 
-def create_app(APP_NAME):
+def create_app():
     app = FastAPI(title=APP_NAME, description=f"{APP_NAME} backend")
     init_db()
     
-    allow_origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "*").split(",") if o.strip()]
+    allow_origins = ALLOWED_ORIGINS or ["localhost", "127.0.0.1"]
     print("ALLOWED ORIGINS", allow_origins)
 
     app.add_middleware(
@@ -37,13 +38,10 @@ def create_app(APP_NAME):
     async def favicon():
         return FileResponse("./sigma.jpg")
 
-
     from .routers.auth import router as auth_router
-    from .routers.verify import router as verify_router
     from .routers.api import router as api_router
     from .routers.judge import router as judge_router
     app.include_router(auth_router)
-    app.include_router(verify_router)
     app.include_router(api_router)
     app.include_router(judge_router)
 

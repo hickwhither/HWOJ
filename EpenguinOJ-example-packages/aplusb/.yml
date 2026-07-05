@@ -1,9 +1,11 @@
+statement: statement-vi.md
 time_limit: 2000
 memory_limit: 512
 
-checker: checker
-validator: validator
+archive: tests
 answer: answer
+validator: validator
+checker: checker
 
 batches:
   1:

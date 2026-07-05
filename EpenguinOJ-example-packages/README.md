@@ -4,6 +4,7 @@
 
 Thông tin cơ bản cho file .yml
 ```yml
+statement: statement-vi.md
 time_limit: 2000
 memory_limit: 512
 ```
@@ -11,8 +12,8 @@ memory_limit: 512
 Các file code khác:
 ```yml
 answer: answer # Bắt buộc nếu sử dụng generators
-checker: checker
 validator: validator # Bắt buộc có nếu sử dụng hack
+checker: checker
 ```
 
 Testcases có sẵn bằng file
