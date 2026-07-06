@@ -1,1 +1,0 @@
-"""EPenguinOJ judge worker package."""

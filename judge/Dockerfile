@@ -11,7 +11,4 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . ./
 
-RUN mkdir -p /data/problems /app/tmp
-VOLUME ["/data/problems"]
-
-CMD ["python", "judge.py", "--config", "config.yml"]
+ENTRYPOINT ["python", "run_judge.py"]

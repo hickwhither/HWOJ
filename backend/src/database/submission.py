@@ -10,6 +10,7 @@ class SUBMISSION_STATUS(str, Enum):
     QUEUED = "QW"
     PROCESSING = "P"
     GRADING = "G"
+    DONE = "D"
     
     ACCEPTED = "OK"
     PARTIALLY_ACCEPTED = "PAC"
@@ -31,7 +32,6 @@ class SubmissionTestCase(BaseModel):
     status: SUBMISSION_STATUS | None = None
     time_used: float | None = None
     memory_used: float | None = None
-    case_points: float | None = None
     input_data: str
     expected_output: str
     actual_output: str | None = None
