@@ -4,7 +4,7 @@ from fastapi import APIRouter, Request, HTTPException, Header
 from pydantic import BaseModel, Field
 from sqlmodel import select
 
-router = APIRouter(prefix="/admin/judge", tags=["judge"])
+router = APIRouter(prefix="/judge", tags=["judge"])
 
 # -- MODELS --
 from database import SessionDep
@@ -30,17 +30,19 @@ class SubmissionUpdateResult(JudgerHandshake):
     test_cases: list["SubmissionTestCase"]
 
 # -- DEPENDENCIES / HELPERS --
-def verify_judge_key(base: JudgerHandshake, session: SessionDep) -> Judger:
-    judger: Judger = session.get(Judger, base.name)
-    if not judger or not judger.key or judger.key != base.key:
+def verify_judge_key(base: JudgerHandshake, request: Request, session: SessionDep) -> Judger:
+    db_judger: Judger = session.get(Judger, base.name)
+    if not db_judger or not db_judger.key or db_judger.key != base.key:
         raise HTTPException(status_code=401, detail="Unauthorized: Judger not found or invalid key")
-    return judger
+    db_judger.last_seen = datetime.now()
+    db_judger.last_ip = request.client.host
+    return db_judger
 
 
 # -- ROUTES --
 @router.post("/ping")
 def info(payload: JudgerPing, request: Request, session: SessionDep):
-    db_judger = verify_judge_key(payload, session)
+    db_judger = verify_judge_key(payload, request, session)
     
     # Kết hợp dữ liệu từ payload và dữ liệu sinh tự động
     update_data = payload.model_dump(exclude_unset=True)
@@ -58,18 +60,16 @@ def info(payload: JudgerPing, request: Request, session: SessionDep):
 
 
 @router.post("/get-task")
-def get_task(payload: JudgerHandshake, session: SessionDep):
+def get_task(payload: JudgerHandshake, request: Request, session: SessionDep):
     """Give a judge one QUEUED submission and atomically mark it as PROCESSING."""
-    db_judger = verify_judge_key(payload, session)
+    db_judger = verify_judge_key(payload, request, session)
 
-    # Dùng with_for_update(skip_locked=True) để tránh Race Condition (nhiều judger lấy cùng 1 task)
     submission = session.exec(
         select(Submission)
         .where(Submission.status == SUBMISSION_STATUS.QUEUED)
         .order_by(Submission.date_created, Submission.id)
-        .with_for_update(skip_locked=True) 
+        .with_for_update(skip_locked=True) # avoid race condition
     ).first()
-    
     if not submission:
         return
 
@@ -82,25 +82,29 @@ def get_task(payload: JudgerHandshake, session: SessionDep):
     session.refresh(submission)
 
     return {
-        "id": submission.id,
-        "problem_code": submission.problem_code,
-        "language": submission.language,
-        "source_code": submission.source_code
+        "task":{
+            "id": submission.id,
+            "problem_code": submission.problem_code,
+            "config": submission.problem.config,
+            "language": submission.language,
+            "source_code": submission.source_code
+        }
     }
 
 
 @router.post("/update-result")
-def update_result(payload: SubmissionUpdateResult, session: SessionDep):
+def update_result(payload: SubmissionUpdateResult, request: Request, session: SessionDep):
     """Receive the final result for a judged submission."""
-    db_judger = verify_judge_key(payload, session)
+    db_judger = verify_judge_key(payload, request, session)
 
     submission = session.get(Submission, payload.submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
     
     payload = SubmissionUpdateResult.model_dump()
+    if SubmissionUpdateResult.status == SUBMISSION_STATUS.GRADING:
+        ...
     submission.sqlmodel_update(SubmissionUpdateResult)
-    submission.status = SUBMISSION_STATUS.GRADING
     session.add(submission)
     session.commit()
     session.refresh(submission)

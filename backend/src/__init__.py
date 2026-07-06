@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from .settings import APP_NAME, ALLOWED_ORIGINS
+from .settings import *
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -38,11 +38,8 @@ def create_app():
     async def favicon():
         return FileResponse("./sigma.jpg")
 
-    from .routers.auth import router as auth_router
-    from .routers.api import router as api_router
-    from .routers.judge import router as judge_router
-    app.include_router(auth_router)
-    app.include_router(api_router)
-    app.include_router(judge_router)
+    import routers_admin, routers_user
+    routers_admin.include_router(app)
+    routers_user.include_router(app)
 
     return app

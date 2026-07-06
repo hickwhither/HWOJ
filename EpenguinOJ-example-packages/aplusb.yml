@@ -1,0 +1,23 @@
+time_limit: 2000
+memory_limit: 32768
+
+answer: answer
+validator: validator
+checker: checker
+
+batches:
+  1:
+    - score: 10
+    - t/toanlop1.in t/toanlop1.out
+    - t/1: 10 1
+    - t/1_pos: 10 2
+    - t/1_neg: 10 3
+  2:
+    - score: 10
+    - t/2: 10 6
+    - t/2_pos: 10 7
+    - t/2_neg: 10 36
+  3:
+    - score: 10
+    - t/67.in t/67.out
+    - t/36.in t/36.out
