@@ -1,7 +1,2 @@
 name: local-judge
 key: change-me
-server_url: http://127.0.0.1:8000
-problems_dir: ./problems
-work_dir: ./tmp
-poll_interval: 3
-box_id: 0

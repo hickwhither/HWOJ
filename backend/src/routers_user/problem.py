@@ -3,11 +3,14 @@ from pydantic import BaseModel
 import math
 from sqlalchemy import func
 
+
+router = APIRouter(prefix="/api/p", tags=["user", "problem"])
+
+# -- MODELS --
 from .. import SessionDep, Problem
-from sqlmodel import select
 
-router = APIRouter(prefix="/p", tags=["frontend"])
 
+# -- ROUTERS --
 @router.get("/")
 def problem_list(session: SessionDep):
     # total = session.exec(select(func.count()).select_from(Problem)).one()
@@ -35,14 +38,3 @@ def get_problem(session: SessionDep, id: str):
     if not problem:
         raise HTTPException(404, "Problem not found")
     return problem
-
-@router.post("/problem/{id}/update")
-def update_problem(request: Request, session: SessionDep, background_tasks: BackgroundTasks, id: str):
-    problem = session.get(Problem, id)
-    if not problem:
-        raise HTTPException(404, "Problem not found")
-    
-    oj = id.split('_')[0]
-    background_tasks.add_task(request.app.bots[oj].fetch, problemid=id)
-    
-    return {"success": f"{id} has been queued to update"}

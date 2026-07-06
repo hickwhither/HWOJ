@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from pwdlib import PasswordHash
 pwd = PasswordHash.recommended()
 
-router = APIRouter(prefix="/admin/auth", tags=["user", "auth"])
+router = APIRouter(prefix="/api/auth", tags=["user", "auth"])
 
 # -- MODELS --
 from database import SessionDep, User, UserProfile
