@@ -8,8 +8,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from .settings import *
 from dotenv import load_dotenv
 load_dotenv()
-
-from database import init_db
+from .database import *
 
 def create_app():
     app = FastAPI(title=APP_NAME, description=f"{APP_NAME} backend")
@@ -38,8 +37,7 @@ def create_app():
     async def favicon():
         return FileResponse("./sigma.jpg")
 
-    import routers_admin, routers_user
-    routers_admin.include_router(app)
-    routers_user.include_router(app)
+    from .routers import router
+    app.include_router(router)
 
     return app

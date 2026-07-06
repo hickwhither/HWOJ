@@ -1,17 +1,20 @@
 from datetime import datetime
-from pydantic import BaseModel
+from typing import Any
 from sqlmodel import Field, Relationship, Enum, SQLModel, Column, JSON
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from . import Problem
+    from src import Problem, ProblemPublic
+    from src import User, UserPublic
+    from src import Judger
 
 class SUBMISSION_STATUS(str, Enum):
     QUEUED = "QW"
     PROCESSING = "P"
     GRADING = "G"
     DONE = "D"
-    
+
+class SUBMISSION_VERDICT(str, Enum):
     ACCEPTED = "OK"
     PARTIALLY_ACCEPTED = "PAC"
     WRONG_ANSWER = "WA"
@@ -25,56 +28,60 @@ class SUBMISSION_STATUS(str, Enum):
     SHORT_CIRCUITED = "SC"
     ABORTED = "AB"
 
-# Dùng BaseModel (Pydantic) cho test case vì nó thường lưu dưới dạng JSON trong DB
-class SubmissionTestCase(BaseModel):
-    id: int
-    batch: int | None = None
-    status: SUBMISSION_STATUS | None = None
-    time_used: float | None = None
-    memory_used: float | None = None
-    input_data: str
-    expected_output: str
-    actual_output: str | None = None
-    error: str | None = None
-
 class Submission(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    user_id: int | None = Field(default=None, foreign_key="user.id")
-    user: "Problem" = Relationship(back_populates="submissions")
+    user_username: int | None = Field(default=None, foreign_key="user.username")
+    user: "User" = Relationship(back_populates="submissions")
     problem_code: str | None = Field(default=None, foreign_key="problem.code")
     problem: "Problem" = Relationship(back_populates="submissions")
 
     date_created: datetime = Field(default_factory=datetime.now, index=True)
     
-    judged_on: str | None = Field(default=None) # Tên Judger
+    judger_id: str | None = Field(default=None, foreign_key="judger.id")
+    judger: "Judger" = Relationship()
     judged_date: datetime | None = Field(default=None)
 
     # Results
-    status: SUBMISSION_STATUS = Field(default=SUBMISSION_STATUS.QUEUED, index=True)
+    status: str = Field(default=SUBMISSION_STATUS.QUEUED, index=True)
     time_used: float | None = Field()
     memory_used: float | None = Field()
     total_points: float | None = Field()
     error: str | None = Field()
-    test_cases: list["SubmissionTestCase"] | None = Field(default=None, sa_column=Column(JSON))
+    test_cases: list[dict[str, Any]] | None = Field(default=None, sa_column=Column(JSON))
+    """
+    id: int
+    batch: int
+    status: str
+    time_used: float
+    memory_used: float
+    input_data: str
+    expected_output: str
+    actual_output: str
+    error: str
+    """
 
     # Payload
     language: str = Field(index = True)
     source: str = Field()
 
-# Use-case: xem danh sách submission ngắn gọn
-class SubmissionShort(BaseModel):
+class SubmissionPublic(SQLModel):
     id: int
+    
+    # Cell 1
     total_points: float
-    status: SUBMISSION_STATUS
+    status: str
     language: str
-    problem: "Problem"
+
+    # Cell 2
+    problem: "ProblemPublic"
+    user: "UserPublic"
     date_created: datetime
+    # + Admin buttons
+
+    # Cell 3
     time_used: float
     memory_used: float
 
-# Use-case: xem thông tin testcase của bài
-class SubmissionTestCaseView(BaseModel):
-    id: int
-    status: SUBMISSION_STATUS
-    test_cases: list[SubmissionTestCase] | None
+class SubmissionView(SubmissionPublic):
+    test_cases: list[dict[str, Any]]
 

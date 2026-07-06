@@ -6,14 +6,14 @@ from fastapi import APIRouter, Request, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlmodel import select
 
-router = APIRouter(prefix="/admin/p", tags=["admin", "problem"])
+router = APIRouter(prefix="/admin/problem", tags=["admin", "problem"])
 
-from . import PROBLEMS_DIR
+from src import PROBLEMS_DIR
 os.makedirs(PROBLEMS_DIR, exist_ok=True)
 
 # -- MODELS --
-from database import Problem, SessionDep
-from database import ProblemConfig, Problem, ProblemShort
+from src import Problem, SessionDep
+from src import Problem, ProblemPublic, ProblemAdmin
 
 class ProblemCreate(BaseModel):
     code: str
@@ -22,26 +22,26 @@ class ProblemCreate(BaseModel):
     authors: list[str]
 
 # -- ROUTERS --
-@router.post("/create", response=ProblemShort)
+@router.post("/create", response_model=ProblemPublic)
 def create_problem(request: Request, problem: ProblemCreate, session: SessionDep):
+    os.makedirs(os.path.join(PROBLEMS_DIR, problem.code), exist_ok=True)
     problem = problem.model_dump()
     db_problem = Problem.model_validate(problem)
-    os.makedirs(os.path.join(PROBLEMS_DIR, problem.code), exist_ok=True)
     session.add(db_problem)
     session.commit()
     session.refresh(db_problem)
     return db_problem
 
 @router.post("/edit/{problem_code}")
-def problem_explorer(request: Request, problem_code:str, problem_config: ProblemConfig, session: SessionDep):
+def problem_explorer(request: Request, problem_code:str, problem_config: ProblemAdmin, statement:str, session: SessionDep):
     db_problem = session.get(Problem, problem_code)
     if not db_problem: raise HTTPException(404, "Problem not exists.")
-    db_problem.config = problem_config
-    session.ad(db_problem)
+    if problem_config: db_problem.config = problem_config
+    if statement: db_problem.statement = statement
+    session.add(db_problem)
     session.commit()
     session.refresh(db_problem)
 
-@router.get("/explorer/{problem_code}")
 @router.get("/explorer/{problem_code}/{path}")
 def problem_explorer(request: Request, problem_code:str, path:str):
     path = os.path.join(PROBLEMS_DIR, problem_code, path)
@@ -50,7 +50,6 @@ def problem_explorer(request: Request, problem_code:str, path:str):
     mime = mimetypes.guess_type(path)
     if "text" in mime: return open(path, 'r').read(1024)
 
-@router.post("/explorer/{problem_code}")
 @router.post("/explorer/{problem_code}/{path}")
 def problem_upload(request: Request, problem_code:str, path:str, upload: UploadFile):
     path = os.path.join(PROBLEMS_DIR, problem_code, path)
@@ -59,7 +58,6 @@ def problem_upload(request: Request, problem_code:str, path:str, upload: UploadF
     with destination.open("wb") as buffer:
         shutil.copyfileobj(upload.file, buffer)
 
-@router.delete("/explorer/{problem_code}")
 @router.delete("/explorer/{problem_code}/{path}")
 def problem_explorer(request: Request, problem_code:str, path:str):
     path = os.path.join(PROBLEMS_DIR, problem_code, path)
