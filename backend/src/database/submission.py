@@ -4,7 +4,7 @@ from sqlmodel import Field, Relationship, Enum, SQLModel, Column, JSON
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from src import Problem, ProblemPublic
+    from src import Problem, ProblemPublic, ProblemJudge
     from src import User, UserPublic
     from src import Judger
 
@@ -51,7 +51,7 @@ class Submission(SQLModel, table=True):
     """
     id: int
     batch: int
-    status: str
+    verdict: str
     time_used: float
     memory_used: float
     input_data: str
@@ -85,3 +85,29 @@ class SubmissionPublic(SQLModel):
 class SubmissionView(SubmissionPublic):
     test_cases: list[dict[str, Any]]
 
+# For judge-workers
+class SubmissionJudge(SQLModel):
+    """
+    {
+        id: int
+        language: str
+        source: str
+        problem:
+        {
+            code: str
+            name: str
+            time_limit: int
+            memory_limit: int
+            input: str
+            output: str
+            answer: str
+            checker: str
+            validator: str
+            batches: list[dict[str, str|list]]
+        }
+    }
+    """
+    id: int
+    language: str
+    source: str
+    problem: "ProblemJudge"

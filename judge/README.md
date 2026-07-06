@@ -29,7 +29,8 @@ docker run --rm \
   -v <file_config_yml>:/app/config.yml:ro \
   -d \
   epenguinoj-judge \
-  --server_url "http://localhost:8000" \
-  --poll_interval 5
+  --key <key>
+  --server_url <url> \
+  --poll_interval <seconds>
 ```
 

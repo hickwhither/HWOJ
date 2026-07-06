@@ -4,11 +4,11 @@ from fastapi import APIRouter, Request, HTTPException, Header, Depends
 from pydantic import BaseModel
 from sqlmodel import select
 
-from src import SessionDep, Submission, Judger, SUBMISSION_STATUS
+from src import SessionDep, Judger
+from src import Submission, SubmissionJudge, SUBMISSION_STATUS
 
 router = APIRouter(prefix="/judger", tags=["judger"])
 
-# Không cần JudgerHandshake nữa!
 class JudgerPing(BaseModel):
     name: str | None = None
     description: str | None = None
@@ -55,8 +55,28 @@ def info(payload: JudgerPing, session: SessionDep, db_judger: Judger = ActiveJud
     return db_judger
 
 
-@router.post("/get-task")
+@router.post("/get-task", response_model=SubmissionJudge)
 def get_task(session: SessionDep, db_judger: Judger = ActiveJudge):
+    """
+    {
+        id: int
+        language: str
+        source: str
+        problem:
+        {
+            code: str
+            name: str
+            time_limit: int
+            memory_limit: int
+            input: str
+            output: str
+            answer: str
+            checker: str
+            validator: str
+            batches: list[dict[str, str|list]]
+        }
+    }
+    """
     submission = session.exec(
         select(Submission)
         .where(Submission.status == SUBMISSION_STATUS.QUEUED)
@@ -65,8 +85,8 @@ def get_task(session: SessionDep, db_judger: Judger = ActiveJudge):
     ).first()
     
     if not submission:
-        session.commit() # Vẫn commit để cập nhật last_seen từ dependency
-        return {"task": None}
+        session.commit() # commit to update last_seen
+        return
 
     submission.status = SUBMISSION_STATUS.PROCESSING
     submission.judger = db_judger
@@ -76,14 +96,7 @@ def get_task(session: SessionDep, db_judger: Judger = ActiveJudge):
     session.commit()
     session.refresh(submission)
 
-    return {
-        "task": {
-            "id": submission.id,
-            "problem_code": submission.problem_code,
-            "language": submission.language,
-            "source_code": submission.source_code
-        }
-    }
+    return submission
 
 
 @router.post("/update-result")

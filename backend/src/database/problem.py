@@ -44,3 +44,16 @@ class ProblemAdmin(ProblemView):
     checker: str
     validator: str
     batches: list[dict[str, str|list]]
+
+# for judge-workers
+class ProblemJudge(SQLModel):
+    code: str
+    name: str
+    time_limit: int
+    memory_limit: int
+    input: str
+    output: str
+    answer: str
+    checker: str
+    validator: str
+    batches: list[dict[str, str|list]]
