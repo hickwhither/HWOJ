@@ -4,10 +4,9 @@ from sqlmodel import Field, Relationship, Enum, SQLModel, Column, JSON
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from src import Problem, ProblemPublic, ProblemJudge
+    from src import Problem, ProblemPublic
     from src import User, UserPublic
     from src import Judger
-from .problem import ProblemJudge
 
 class SUBMISSION_STATUS(str, Enum):
     QUEUED = "QW"
