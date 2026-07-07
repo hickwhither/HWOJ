@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from src import Problem, ProblemPublic, ProblemJudge
     from src import User, UserPublic
     from src import Judger
+from .problem import ProblemJudge
 
 class SUBMISSION_STATUS(str, Enum):
     QUEUED = "QW"
@@ -84,30 +85,3 @@ class SubmissionPublic(SQLModel):
 
 class SubmissionView(SubmissionPublic):
     test_cases: list[dict[str, Any]]
-
-# For judge-workers
-class SubmissionJudge(SQLModel):
-    """
-    {
-        id: int
-        language: str
-        source: str
-        problem:
-        {
-            code: str
-            name: str
-            time_limit: int
-            memory_limit: int
-            input: str
-            output: str
-            answer: str
-            checker: str
-            validator: str
-            batches: list[dict[str, str|list]]
-        }
-    }
-    """
-    id: int
-    language: str
-    source: str
-    problem: "ProblemJudge"

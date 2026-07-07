@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlmodel import select
 
 from src import SessionDep, Judger
-from src import Submission, SubmissionJudge, SUBMISSION_STATUS
+from src import Submission, SUBMISSION_STATUS
 
 router = APIRouter(prefix="/judger", tags=["judger"])
 
@@ -22,6 +22,24 @@ class SubmissionUpdateResult(BaseModel):
     memory_used: float | None = None
     error: str | None = None
     test_cases: list[dict[str, Any]]
+
+class ProblemJudge(BaseModel):
+    code: str
+    name: str
+    time_limit: int
+    memory_limit: int
+    input: str
+    output: str
+    answer: str
+    checker: str
+    validator: str
+    batches: list[dict[str, str|list]]
+class SubmissionJudge(BaseModel):
+    id: int
+    language: str
+    source: str
+    problem: "ProblemJudge"
+    
 
 # -- DEPENDENCIES / HELPERS --
 def verify_judge_key(

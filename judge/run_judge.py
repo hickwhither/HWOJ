@@ -44,7 +44,7 @@ post("/judger/ping", {
     "start_time": datetime.now(),
     "description": random.choices([
         "bong thay minh qua dep trai",
-        "uoc gi minh bot dang cap",
+        "uoc gi ta bot dang cap hon chut",
         "uocj bi gs chit",
         "chit chet chit chet",
         "🐧",
