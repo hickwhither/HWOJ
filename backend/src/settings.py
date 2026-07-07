@@ -1,4 +1,5 @@
-APP_NAME = "TBCOJ"
+SECRET_KEY="CHANGE THIS"
+APP_NAME = "EPenguinOJ"
 ALLOWED_ORIGINS = ["*"]
 
 PROBLEMS_DIR = "/tmp/problems"

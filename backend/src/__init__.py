@@ -27,7 +27,7 @@ def create_app():
 
     app.add_middleware(
         SessionMiddleware,
-        secret_key=secrets.token_hex(32),
+        secret_key=SECRET_KEY,
         session_cookie="session",
         max_age=60 * 60 * 24 * 7, # 7 days
     )
