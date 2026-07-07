@@ -68,7 +68,7 @@ export default function ProblemDisplay() {
             
             <div className="box">
                 <p><strong>Time limit:</strong> {p.time_limit} ms</p>
-                <p><strong>Memory limit:</strong> {p.memory_limit} MB</p>
+                <p><strong>Memory limit:</strong> {p.memory_limit/1024} MB</p>
                 <p><strong>Input:</strong> {p.input ? p.input : 'stdin'}</p>
                 <p><strong>Output:</strong> {p.output ? p.output : 'stdout'}</p>
 				{/* Cần thay gấp bằng 1 cái load username */}
