@@ -1,62 +1,89 @@
-import React, { useMemo, useState, useEffect } from 'react'
-import { get_request } from '../request'
+import React, { useState, useEffect } from 'react';
+import { get_request } from '../request';
 import { useNavigate, useParams } from 'react-router-dom';
 
-const STORAGE_KEY = "problems_cache"
-const COOLDOWN = 60_000 // 60 seconds
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+
+const problemCache = {};
 
 export default function ProblemDisplay() {
-	const { id } = useParams();
-	const navigate = useNavigate();
-	const [problem, setProblem] = useState(null);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
+    const { id } = useParams();
+    const [problem, setProblem] = useState(problemCache[id] || null); // 2. Khởi tạo từ cache
+    const [loading, setLoading] = useState(!problemCache[id]); // 3. Nếu có cache thì không loading
+    const [error, setError] = useState(null);
 
-	useEffect(() => {
-		let mounted = true;
-		async function load() {
-			setLoading(true);
-			try {
-				const res = await get_request(`/api/problem/${id}`);
-				if (!mounted) return;
-				setProblem(res && res.json ? res.json : null);
-			} catch (e) {
-				setError(e.message || String(e));
-			} finally {
-				if (mounted) setLoading(false);
-			}
-		}
-		load();
-		return () => { mounted = false };
-	}, [id]);
+    useEffect(() => {
+        if (problemCache[id]) {
+            setProblem(problemCache[id]);
+            setLoading(false);
+            return;
+        }
 
-	if (loading) return (
-		<>
-			<h1 className="title">Bai {id}</h1>
-			<div className="box">Loading…</div>
-		</>
-	);
+        let mounted = true;
+        async function load() {
+            setLoading(true);
+            setError(null);
+            try {
+                const res = await get_request(`/api/problem/${id}`);
+                if (!mounted) return;
+                
+                const data = res && res.data ? res.data : res; 
+                
+                // 4. Lưu vào cache trước khi set state
+                problemCache[id] = data;
+                setProblem(data);
+            } catch (e) {
+                if (!mounted) return;
+                setError(e.message || String(e));
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        }
+        load();
+        return () => { mounted = false };
+    }, [id]);
 
-	if (error) return (
-		<>
-			<h1 className="title">Bai {id}</h1>
-			<div className="box">Error: {error}</div>
-		</>
-	);
+    if (loading) return (
+        <>
+            <h1 className="title">Bài {id}</h1>
+            <div className="box">Loading…</div>
+        </>
+    );
 
-	const p = problem || {};
-	const rating = p.rating == null ? '—' : p.rating;
+    if (error) return (
+        <>
+            <h1 className="title">Bài {id}</h1>
+            <div className="box">Error: {error}</div>
+        </>
+    );
 
-	return (
-		<>
-			<h1 className="title">{p.title || `Bai ${id}`}</h1>
-			<div className="box">
-				<p><strong>OJ:</strong> {p.oj}</p>
-				<p><strong>ID:</strong> {p.id}</p>
-				<p><strong>Rating:</strong> {rating}</p>
-				<p><strong>Last update:</strong> {p.updated_at || p.updated}</p>
-				<div dangerouslySetInnerHTML={{ __html: p.description || p.translated || 'No description' }} />
-			</div>
-		</>
-	)
+    const p = problem || {};
+
+    return (
+        <>
+            <h1 className="title">{p.name || `Bài ${id}`} <span className="has-text-grey-light">({p.code})</span></h1>
+            
+            <div className="box">
+                <p><strong>Time limit:</strong> {p.time_limit} ms</p>
+                <p><strong>Memory limit:</strong> {p.memory_limit} MB</p>
+                <p><strong>Input:</strong> {p.input ? p.input : 'stdin'}</p>
+                <p><strong>Output:</strong> {p.output ? p.output : 'stdout'}</p>
+				{/* Cần thay gấp bằng 1 cái load username */}
+                {p.authors && p.authors.length > 0 && (
+                    <p><strong>Tác giả:</strong> {p.authors.map(a => a.username || a.name).join(', ')}</p>
+                )}
+
+                <hr />
+                <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                >
+                    {p.statement}
+                </ReactMarkdown>
+            </div>
+        </>
+    )
 }

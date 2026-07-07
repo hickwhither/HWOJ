@@ -9,7 +9,7 @@ export async function request(path, options = {}) {
 			"Content-Type": "application/json",
 			...(options.headers || {})
 		},
-		// credentials: "include",
+		credentials: "include",
 		body: options.body ? JSON.stringify(options.body) : undefined
 	};
 
@@ -20,13 +20,15 @@ export async function request(path, options = {}) {
 		return null;
 	}
 
-	if (!res.ok) {
-		const errorText = await res.text();
-		throw new Error(`Request failed ${res.status}: ${errorText}`);
-	}
-
+	// if (!res.ok) {
+	// 	const errorText = await res.text();
+	// 	throw new Error(`Request failed ${res.status}: ${errorText}`);
+	// }
+	let data = await res.json()
+	console.log(data)
+	
 	return {
-		json: await res.json(),
+		data: data,
 		status: res.status
 	};
 }

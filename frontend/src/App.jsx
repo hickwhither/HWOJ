@@ -2,7 +2,7 @@ import APP_NAME from './config.js'
 
 import { useState } from 'react'
 import { Routes, Route, Link, NavLink } from 'react-router-dom'
-import { ToastContainer, toast } from 'react-toastify';
+import { ToastContainer, toast, Bounce } from 'react-toastify';
 
 import Home from './pages/Home'
 import ProblemList from './pages/ProblemList'
@@ -17,12 +17,31 @@ function App() {
 
 	return (
 		<div>
-			<ToastContainer />
+			<ToastContainer
+				position="bottom-right"
+				autoClose={5000}
+				hideProgressBar={false}
+				newestOnTop={false}
+				closeOnClick
+				rtl={false}
+				pauseOnFocusLoss
+				draggable
+				pauseOnHover
+				theme="dark"
+				transition={Bounce}
+			/>
 
-			<nav className="navbar" role="navigation" aria-label="main navigation">
+			<nav className="navbar" role="navigation" aria-label="main navigation"
+				style={{
+					position: "sticky",
+					top: 0,
+					zIndex: 1000,
+				}}
+			>
 				<div className="navbar-brand">
 					<Link className="navbar-item" to="/">
 						<img src="/logo.png" alt={APP_NAME} />
+						<strong>TBCOJ</strong>
 					</Link>
 
 					<a
@@ -39,9 +58,9 @@ function App() {
 				</div>
 
 				<div className={`navbar-menu ${isBurgerActive ? 'is-active' : ''}`}>
-					<div className="navbar-start"></div>
+					<div className="navbar-start" style={{flex:1}}></div>
 
-					<div className="navbar-center" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+					<div className="navbar-start" style={{flex:'none', justifyContent:'center'}}>
 						<NavLink className="navbar-item" to="/">
 							Home
 						</NavLink>
@@ -53,8 +72,10 @@ function App() {
 						</NavLink>
 					</div>
 
-					<div className="navbar-end">
-						<AuthButton />
+					<div className="navbar-end" style={{flex:1, justifyContent:'flex-end'}}>
+            			<div className="navbar-item">
+							<AuthButton />
+						</div>
 					</div>
 				</div>
 			</nav>
