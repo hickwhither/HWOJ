@@ -1,9 +1,4 @@
-EpenguinOJ (former know as Epenguin)
-
-Scrapped repos:
-- https://github.com/hickwhither/epenguin-bulma
-- https://github.com/hickwhither/epenguin-fastapi
-
+EpenguinOJ
 
 DEMO: https://test.hw.io.vn/
 
@@ -14,3 +9,5 @@ TODO:
 - ~~Server judge~~
 - Sửa markdown của trang problem
 - Nộp bài, test server judge
+
+[INSTALLATION](/INSTALLATION.md)
