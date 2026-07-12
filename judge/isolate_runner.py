@@ -1,137 +1,91 @@
 from __future__ import annotations
-
 import os
 import shutil
 import subprocess
+from contextlib import contextmanager
 
-class IsolateRunner:
-    def __init__(self, box_id=0, use_cgroups=True):
-        self.box_id = box_id
-        self.use_cgroups = use_cgroups
-        self.box_dir: str | None = None
+def _base_cmd(box_id: int, use_cgroups: bool) -> list[str]:
+    cmd = ["sudo", "isolate", f"--box-id={box_id}"]
+    if use_cgroups:
+        cmd.insert(1, "--cg")
+    return cmd
 
-    def __enter__(self) -> "IsolateRunner":
-        cmd = self._base_cmd() + ["--init"]
-        self.box_dir = subprocess.check_output(cmd, text=True).strip()
-        return self
+@contextmanager
+def isolate_sandbox(box_id: int = 0, use_cgroups: bool = True):
+    """Context manager khởi tạo và tự động dọn dẹp sandbox cho 1 test case."""
+    cmd = _base_cmd(box_id, use_cgroups) + ["--init"]
+    box_dir = subprocess.check_output(cmd, text=True).strip()
+    try:
+        yield box_dir
+    finally:
+        # Chạy xong test (dù thành công hay lỗi) đều xóa sạch box ngay lập tức
+        subprocess.run(_base_cmd(box_id, use_cgroups) + ["--cleanup"], check=False, capture_output=True)
 
-    def __exit__(self, exc_type, exc, tb) -> None:
-        subprocess.run(self._base_cmd() + ["--cleanup"], check=False, capture_output=True, text=True)
+def isolate_run(
+    executable: str,
+    exec_path: str,
+    input_path: str,
+    output_path: str,
+    error_path: str,
+    time_limit: int, # secs
+    memory_limit: int, # KB
+    box_id: int = 0,
+    use_cgroups: bool = True
+) -> dict:
+    with isolate_sandbox(box_id, use_cgroups) as box_dir:
+        # 1. Define Files
+        box_exec = os.path.join(box_dir, "a")
+        box_in = os.path.join(box_dir, "input.in")
+        box_out = os.path.join(box_dir, "output.out")
+        box_err = os.path.join(box_dir, "error.err")
+        # Copy file vào sandbox
+        shutil.copy2(exec_path, box_exec)
+        shutil.copy2(input_path, box_in)
+        os.chmod(box_exec, 0o755)
+        # Chuẩn bị file meta ở ngoài
+        meta_file = os.path.join(os.path.dirname(box_dir), f"meta_{box_id}.txt")
+        if os.path.exists(meta_file): os.remove(meta_file)
 
-    def run(self, executable: str, input_path: str, output_path: str, time_limit_ms: int, memory_limit_kb: int) -> dict:
-        if self.box_dir is None:
-            raise RuntimeError("isolate box has not been initialized")
-        
-        # path
-        output_bin = os.path.join(self.box_dir, "output")
-        box_input = os.path.join(self.box_dir, "input.in")
-        
-        shutil.copy2(executable, output_bin)
-        shutil.copy2(input_path, box_input)
-        os.chmod(output_bin, 0o755)
-
-        meta_file = os.path.join(os.path.dirname(self.box_dir), "meta.txt")
-        if os.path.exists(meta_file):
-            os.remove(meta_file)
-
-        time_limit = max(time_limit_ms / 1000, 0.001)
-        cmd = self._base_cmd() + [
+        # 2. Execute
+        cmd = _base_cmd(box_id, use_cgroups) + [
             f"--meta={meta_file}",
             f"--time={time_limit}",
-            f"--wall-time={time_limit + 1}",
-            f"--mem={memory_limit_kb}",
+            f"--wall-time={time_limit + 2}",
+            f"--mem={memory_limit}",
             "--stdin=input.in",
             "--stdout=output.out",
             "--stderr=error.err",
-            "--run",
-            "--",
-            "./output",
+            "--run", "--", executable, "./a",
         ]
         process = subprocess.run(cmd, capture_output=True, text=True)
-        meta = self._read_meta(meta_file)
         
-        # input
-        actual_input_str = ""
-        with open(output_path, "r", encoding="utf-8", errors="replace") as f:
-            actual_input_str = f.read()
+        # 3. Read meta + copy files
+        meta: dict[str, str] = {}
+        if os.path.exists(meta_file):
+            with open(meta_file, "r", encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    if ":" in line:
+                        k, v = line.strip().split(":", 1)
+                        meta[k] = v
+            os.remove(meta_file) # Đọc xong xóa luôn file meta bên ngoài
 
-        # output
-        box_output_file = os.path.join(self.box_dir, "output.out")
-        actual_output_str = ""
-        if os.path.exists(box_output_file):
-            with open(box_output_file, "r", encoding="utf-8", errors="replace") as f:
-                actual_output_str = f.read()
-            
-        # error
-        box_error_file = os.path.join(self.box_dir, "error.err")
-        if os.path.exists(box_error_file):
-            with open(box_error_file, "r", encoding="utf-8", errors="replace") as f:
-                error_data = f.read()
-        else:
-            error_data = process.stderr
+        # 4. output/error
+        shutil.copy2(box_out, output_path)
+        shutil.copy2(box_err, error_path)
 
-        status = self._verdict(meta, process.returncode)
-        # Chỉ check đáp án khi code không bị lỗi TLE, MLE, RE...
-        if status is None:
-            expected_output_str = ""
-            if os.path.exists(output_path):
-                with open(output_path, "r", encoding="utf-8", errors="replace") as f:
-                    expected_output_str = f.read()
-            
-            # Tách chuỗi thành danh sách các token để so sánh
-            actual_tokens = actual_output_str.split()
-            expected_tokens = expected_output_str.split()
-            
-            if actual_tokens == expected_tokens:
-                status = "AC"
-            else:
-                status = "WA"
+        # 5. Status
+        status = meta.get("status", "")
+        if status == "TO": status = "TLE"
+        elif status in {"XX", "FO"}: status = "IE"
+        elif status in {"SG", "RE"}:
+            status = "MLE" if meta.get("exitsig") == "9" else "RTE"
+        elif process.returncode != 0 or meta.get("exitcode", "0") != "0":
+            status = "RTE"
+
+        mem_val = meta.get("cg-mem") or meta.get("max-rss") or "0"
 
         return {
             "status": status,
             "time_used": float(meta.get("time", 0) or 0),
-            "memory_used": self._memory_mb(meta),
-            "input_data":actual_input_str[:1024],
-            "expected_output":expected_output_str[:1024],
-            "actual_output": actual_output_str[:1024], 
-            "error": error_data,
+            "memory_used": float(mem_val)
         }
-
-    def _base_cmd(self) -> list[str]:
-        cmd = ["sudo", "isolate", f"--box-id={self.box_id}"]
-        if self.use_cgroups:
-            cmd.insert(1, "--cg")
-        return cmd
-
-    @staticmethod
-    def _read_meta(meta_file: str) -> dict[str, str]:
-        meta: dict[str, str] = {}
-        if not os.path.exists(meta_file):
-            return meta
-        with open(meta_file, "r", encoding="utf-8", errors="replace") as f:
-            for line in f.read().splitlines():
-                if ":" in line:
-                    key, value = line.split(":", 1)
-                    meta[key] = value
-        return meta
-
-    @staticmethod
-    def _memory_mb(meta: dict[str, str]) -> float:
-        value = meta.get("cg-mem") or meta.get("max-rss") or "0"
-        try:
-            return float(value) / 1024
-        except ValueError:
-            return 0.0
-
-    @staticmethod
-    def _verdict(meta: dict[str, str], returncode: int) -> str | None:
-        status = meta.get("status", "")
-        if status == "TO":
-            return "TLE"
-        if status in {"XX", "FO"}:
-            return "JE"
-        if status in {"SG", "RE"}:
-            return "MLE" if meta.get("exitsig") == "9" else "RTE"
-        if returncode != 0 or meta.get("exitcode", "0") != "0":
-            return "RTE"
-        return None

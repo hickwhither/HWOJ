@@ -1,12 +1,6 @@
 # EPenguinOJ Judge
 Judge worker receives and judges submission from backend (EpenguinOJ-example-packages) using `isolate` sandbox.
 
-## Config
-```yml
-name: local-judge
-key: change-me
-```
-
 ## Problem folder sync
 - Same host: just volume into it.
 - Remote server judge: (idk)
@@ -25,10 +19,10 @@ docker run --rm \
   --privileged \
   --name <ga> \
   --network="host" \
-  -v <file_problems_dir>:/app/problems \
-  -v <file_config_yml>:/app/config.yml:ro \
+  -v <file_problems_dir>:/app/problems:ro \
   -d \
   epenguinoj-judge \
+  --name <ga>
   --key <key>
   --server_url <url> \
   --poll_interval <seconds>

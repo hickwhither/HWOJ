@@ -7,14 +7,13 @@ import requests
 from typing import Any
 from urllib.parse import urljoin
 from datetime import datetime
-import random
-
-from core import judge_task
-from isolate_runner import IsolateRunner
+import random, json
+import os, subprocess
 
 parser = argparse.ArgumentParser(description="EPenguinOJ judge worker")
 parser.add_argument("--name", type=str, default=None)
 parser.add_argument("--key", type=str)
+parser.add_argument("--box_id", default=0)
 parser.add_argument("--server_url", default="http://127.0.0.1:8000")
 parser.add_argument("--poll_interval", type=float, default=3.0)
 parser.add_argument("--once", action="store_true")
@@ -22,6 +21,7 @@ args = parser.parse_args()
 
 JUDGER_NAME = args.name
 JUDGER_KEY = args.key
+BOX_ID = args.box_id
 SERVER_URL = args.server_url
 POLL_INTERVAL = args.poll_interval
 
@@ -69,51 +69,49 @@ post("/judger/ping", {
 
 print(f"Worker [{JUDGER_NAME}] đang chạy và đợi bài...")
 
+from judgers import standard
+
+def build_submission(language, source):
+    with open("code", "w", encoding="utf-8") as f: f.write(source)
+    res = subprocess.run(
+        language.command.format(original_file="code", output_file="exec_code").split(' '),
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=36
+    )
+    return res.returncode, res.stderr
+
+def run(language, source, problem_code):
+    try:
+        returncode, error = build_submission(language, source)
+        if returncode:
+            return {
+                "status": "CE",
+                "error": str(error)
+            }
+        problem_path = os.path.join("app", "problems", problem_code)
+        config = json.loads(os.path.join(problem_path, '.json'))
+        
+        res = standard.judge(language, "exec_code", problem_path, config, BOX_ID)
+        res['error'] = str(error)
+        return res
+    except Exception as exc:
+        return {
+            "status": "IE", # Internal Error
+            "error": str(exc),
+        }
+
 while True:
     try:
         task = post("/judger/get-task")
         
         if task:
-            sub_id = task["id"] 
-            print(f"-> Đang chấm bài nộp ID: {sub_id} ({task['language']})")
-            
-            try:
-                isolate = IsolateRunner()
-                test_cases, err = judge_task(
-                    isolate=isolate,
-                    submission_id=sub_id,
-                    problem_code=task["problem_code"],
-                    config=task.get("config"), # .get đề phòng trường hợp không có config bài
-                    language=lang_dict[task["language"]],
-                    source_code=task["source_code"],
-                )
-                
-                # SỬA LỖI LOGIC: Tính toán lại tổng time và memory từ mảng test_cases đúng cách
-                total_time = 0.0
-                total_memory = 0.0
-                if isinstance(test_cases, list):
-                    for tc in test_cases:
-                        total_time += tc.get("time_used", 0)
-                        total_memory += tc.get("memory_used", 0)
-                
-                result = {
-                    "submission_id": sub_id,
-                    "status": "D", # Hoặc trạng thái hoàn thành của hệ thống bạn (ví dụ: "AC", "WA"...)
-                    "time_used": total_time,
-                    "memory_used": total_memory,
-                    "error": str(err) if err else None,
-                    "test_cases": test_cases
-                }
-            except Exception as exc:
-                result = {
-                    "submission_id": sub_id,
-                    "status": "IE", # Internal Error
-                    "error": str(exc),
-                }
-                
-            # Gửi kết quả về backend thông qua Header Authentication
+            print(f"-> Đang chấm bài nộp ID: {task['id']} ({task['language']})")
+            result = run(lang_dict(task['language']), task['source'], task['problem_code'])
+            result["id"] = task["id"]
             post("/judger/update-result", result)
-            print(f"<- Đã gửi kết quả bài nộp ID: {sub_id} thành công.")
+            print(f"<- Đã gửi kết quả bài nộp ID: {task['id']} thành công.")
             
     except Exception as network_exc:
         print(f"[Lỗi kết nối hoặc Hệ thống]: {network_exc}")
