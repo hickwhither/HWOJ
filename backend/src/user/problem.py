@@ -1,15 +1,35 @@
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Request, Depends
 from sqlmodel import func, select, or_
 from pydantic import BaseModel
 from typing import Optional
+import pydantic
 
 router = APIRouter(prefix="/problem", tags=["problem"])
 
 # -- MODELS --
 from src import SessionDep
-from src import Problem, ProblemView, ProblemPublic
+from src import User, Problem, Submission
+from src.database_public import SubmissionPublic, SubmissionView, ProblemView, ProblemPublic
 
-# Khai báo model trả về cho phân trang
+def verify_auth(
+    request: Request, 
+    session: SessionDep
+) -> User:
+    auth_data = request.session.get("auth")
+    if not auth_data or "username" not in auth_data:
+        raise HTTPException(401, "Not authenticated")
+        
+    username = auth_data["username"]
+    user = session.get(User, username)
+    if not user: 
+        raise HTTPException(404, "User not found")
+            
+    return user
+
+class SubmissionCreate(BaseModel):
+    language: str
+    source: str
+
 class ProblemPageResponse(BaseModel):
     problems: list[ProblemPublic]
     total: int
@@ -53,3 +73,14 @@ def get_problem(session: SessionDep, id: str):
     if not problem:
         raise HTTPException(404, "Problem not found")
     return problem
+
+@router.post("/{id}/submit")
+def submit(session: SessionDep, id: str, submitF: SubmissionCreate, current_user: User = Depends(verify_auth)):
+    db_problem = session.get(Problem, id)
+    if not db_problem:
+        raise HTTPException(404, "Problem not found")
+    submit_data = submitF.model_dump()
+    new_submission = Submission(user=current_user, problem=db_problem, **submit_data)
+    session.add(new_submission)
+    session.commit()
+    session.refresh(new_submission)

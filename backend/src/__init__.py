@@ -37,7 +37,11 @@ def create_app():
     async def favicon():
         return FileResponse("./sigma.jpg")
 
-    from .routers import router
-    app.include_router(router)
+    from .admin import router as admin_router
+    from .user import router as api_router
+    from .judger import router as judger_router
+    app.include_router(admin_router)
+    app.include_router(api_router)
+    app.include_router(judger_router)
 
     return app

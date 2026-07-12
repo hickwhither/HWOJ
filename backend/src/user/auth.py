@@ -1,14 +1,19 @@
 from fastapi import APIRouter, Request, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from pwdlib import PasswordHash
 pwd = PasswordHash.recommended()
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # -- MODELS --
-from src import SessionDep
-from src import User, UserCreate, UserPublic, UserView
+from src import SessionDep, User
+from src.database_public import UserPublic, UserView
 from sqlmodel import select, func
+
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
 class PasswordForm(BaseModel):
     username: str
     password: str

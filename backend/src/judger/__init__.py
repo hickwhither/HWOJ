@@ -16,29 +16,18 @@ class JudgerPing(BaseModel):
     start_time: datetime
 
 class SubmissionUpdateResult(BaseModel):
-    submission_id: int
+    id: int
     status: str
     time_used: float | None = None
     memory_used: float | None = None
     error: str | None = None
     test_cases: list[dict[str, Any]]
 
-class ProblemJudge(BaseModel):
-    code: str
-    name: str
-    time_limit: int
-    memory_limit: int
-    input: str
-    output: str
-    answer: str
-    checker: str
-    validator: str
-    batches: list[dict[str, str|list]]
 class SubmissionJudge(BaseModel):
     id: int
     language: str
     source: str
-    problem: "ProblemJudge"
+    problem_code: str
     
 
 # -- DEPENDENCIES / HELPERS --
@@ -75,26 +64,6 @@ def info(payload: JudgerPing, session: SessionDep, db_judger: Judger = ActiveJud
 
 @router.post("/get-task", response_model=SubmissionJudge)
 def get_task(session: SessionDep, db_judger: Judger = ActiveJudge):
-    """
-    {
-        id: int
-        language: str
-        source: str
-        problem:
-        {
-            code: str
-            name: str
-            time_limit: int
-            memory_limit: int
-            input: str
-            output: str
-            answer: str
-            checker: str
-            validator: str
-            batches: list[dict[str, str|list]]
-        }
-    }
-    """
     submission = session.exec(
         select(Submission)
         .where(Submission.status == SUBMISSION_STATUS.QUEUED)
@@ -119,11 +88,11 @@ def get_task(session: SessionDep, db_judger: Judger = ActiveJudge):
 
 @router.post("/update-result")
 def update_result(payload: SubmissionUpdateResult, session: SessionDep, db_judger: Judger = ActiveJudge):
-    submission = session.get(Submission, payload.submission_id)
+    submission = session.get(Submission, payload.id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
 
-    update_data = payload.model_dump(exclude={"submission_id"}, exclude_unset=True)
+    update_data = payload.model_dump(exclude={"id"}, exclude_unset=True)
     
     submission.sqlmodel_update(update_data)
     session.add(submission)

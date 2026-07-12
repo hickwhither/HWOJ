@@ -1,5 +1,5 @@
 import { toast } from "react-toastify";
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = "https://api.hw.io.vn";
 
 export async function request(path, options = {}) {
 
