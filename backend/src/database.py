@@ -12,28 +12,6 @@ class ProblemAuthorLinks(SQLModel, table=True):
     problem_code: int = Field(foreign_key="problem.code", primary_key=True)
 
 
-
-# Judger
-def random_key():
-    return ''.join(secrets.choice(string.ascii_letters + string.digits + "!@#$%^&*(-_=+)") for _ in range(256))
-
-class Judger(SQLModel, table=True):
-    # Cell 1
-    id: int = Field(primary_key=True)
-    key: str = Field(default_factory=random_key) # click top copy
-    blocked: bool = Field(default=False)
-    
-    # Cell 2
-    name: str | None = Field(default=None)
-    languages: list[str] | None = Field(default=None, sa_column=Column(JSON))
-    description: str | None = Field(default=None)
-
-    # Cell 3
-    start_time: datetime | None = Field(default=None) # Uptime seconds
-    last_seen: datetime | None = Field(default=None)
-    last_ip: str | None = Field(default=None)
-
-
 # User
 class UserBase(SQLModel):
     # Auth
@@ -44,7 +22,7 @@ class UserBase(SQLModel):
     # Profiles
     nickname: str | None = Field(default=None)
     avatar_url: str | None = Field(default=None)
-    bio: str = Field(default="")
+    bio: str | None = Field(default=None)
 
     # Permissions
     active: bool = Field(default=True, index=True)
@@ -108,8 +86,9 @@ class Submission(SQLModel, table=True):
 
     date_created: datetime = Field(default_factory=datetime.now, index=True)
     
-    judger_id: str | None = Field(default=None, foreign_key="judger.id")
-    judger: "Judger" = Relationship()
+    # judger_id: str | None = Field(default=None, foreign_key="judger.id")
+    # judger: "Judger" = Relationship()\
+    judger_name: str | None = Field(default = None)
     judged_date: datetime | None = Field(default=None)
 
     # Results

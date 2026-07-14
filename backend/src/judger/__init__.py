@@ -4,16 +4,8 @@ from fastapi import APIRouter, Request, HTTPException, Header, Depends
 from pydantic import BaseModel
 from sqlmodel import select
 
-from src import SessionDep, Judger
+from src import SessionDep
 from src import Submission, SUBMISSION_STATUS
-
-router = APIRouter(prefix="/judger", tags=["judger"])
-
-class JudgerPing(BaseModel):
-    name: str | None = None
-    description: str | None = None
-    languages: list[str]
-    start_time: datetime
 
 class SubmissionUpdateResult(BaseModel):
     id: int
@@ -21,49 +13,41 @@ class SubmissionUpdateResult(BaseModel):
     time_used: float | None = None
     memory_used: float | None = None
     error: str | None = None
-    test_cases: list[dict[str, Any]]
+    test_cases: list[dict[str, Any]] | None = None
 
 class SubmissionJudge(BaseModel):
     id: int
     language: str
     source: str
     problem_code: str
-    
+
+active_judgers = {}    
 
 # -- DEPENDENCIES / HELPERS --
+AUTH_KEY = "Change_This_Key_Later__"
 def verify_judge_key(
     request: Request, 
     session: SessionDep, 
-    x_judge_key: str = Header(..., description="API Key của máy chấm")
-) -> Judger:
-    db_judger = session.get(Judger, x_judge_key)
-
-    if not db_judger:
+    name: str = Header(..., description="Your name"),
+    authentication: str = Header(..., description="Your Key"),
+    message: str | None = Header(None, description="whatever you say bro")
+) -> str:
+    if authentication != AUTH_KEY:
         raise HTTPException(status_code=401, detail="Invalid Judge Key")
-    if db_judger.blocked:
-        raise HTTPException(status_code=403, detail="Judger is blocked")
-
-    # db_judger will be saved by those endpoints below
-    db_judger.last_seen = datetime.now()
-    db_judger.last_ip = request.client.host
-    return db_judger
+    active_judgers[name] = {
+        "message": message,
+        "last_seen": datetime.now()
+    }
+    return name
 
 ActiveJudge = Depends(verify_judge_key)
 
 # -- ROUTES --
-
-@router.post("/ping")
-def info(payload: JudgerPing, session: SessionDep, db_judger: Judger = ActiveJudge):
-    update_data = payload.model_dump(exclude_unset=True)
-    db_judger.sqlmodel_update(update_data)
-    session.add(db_judger)
-    session.commit()
-    session.refresh(db_judger)
-    return db_judger
+router = APIRouter(prefix="/judger", tags=["judger"])
 
 
-@router.post("/get-task", response_model=SubmissionJudge)
-def get_task(session: SessionDep, db_judger: Judger = ActiveJudge):
+@router.post("/get-task", response_model=SubmissionJudge|None)
+def get_task(session: SessionDep, judger_name: str = ActiveJudge):
     submission = session.exec(
         select(Submission)
         .where(Submission.status == SUBMISSION_STATUS.QUEUED)
@@ -76,7 +60,7 @@ def get_task(session: SessionDep, db_judger: Judger = ActiveJudge):
         return
 
     submission.status = SUBMISSION_STATUS.PROCESSING
-    submission.judger = db_judger
+    submission.judger_name = judger_name
     submission.judged_date = datetime.now()
     
     session.add(submission)
@@ -87,7 +71,7 @@ def get_task(session: SessionDep, db_judger: Judger = ActiveJudge):
 
 
 @router.post("/update-result")
-def update_result(payload: SubmissionUpdateResult, session: SessionDep, db_judger: Judger = ActiveJudge):
+def update_result(payload: SubmissionUpdateResult, session: SessionDep, judger_name: str = ActiveJudge):
     submission = session.get(Submission, payload.id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
