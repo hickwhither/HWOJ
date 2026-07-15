@@ -23,8 +23,8 @@ $ apt install mariadb-server libmysqlclient-dev
 Create database and user
 ```sh
 $ sudo mysql
-mariadb> CREATE DATABASE epenguin DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_general_ci;
-mariadb> GRANT ALL PRIVILEGES ON epenguin.* TO 'epenguin'@'localhost' IDENTIFIED BY '<mariadb user password>';
+mariadb> CREATE DATABASE hwoj DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_general_ci;
+mariadb> GRANT ALL PRIVILEGES ON hwoj.* TO 'hwoj'@'localhost' IDENTIFIED BY '<mariadb user password>';
 mariadb> exit
 ```
 

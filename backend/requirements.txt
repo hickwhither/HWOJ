@@ -3,7 +3,7 @@ python-dotenv
 itsdangerous
 
 fastapi[standard]
-uvicorn
 
 sqlmodel
+pymysql
 pwdlib[argon2]
