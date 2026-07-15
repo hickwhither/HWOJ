@@ -1,7 +1,7 @@
 ## FRONTEND
 ```sh
 # install
-cd frontend
+cd EPenguinOJ-frontend
 npm i
 
 # dev run
