@@ -1,7 +1,4 @@
 # EPenguinOJ-FastAPI
-Requirements:
-- uv
-
 sync
 ```sh
 uv sync

@@ -24,7 +24,7 @@ class SubmissionJudge(BaseModel):
 active_judgers = {}    
 
 # -- DEPENDENCIES / HELPERS --
-AUTH_KEY = "Change_This_Key_Later__"
+from src import JUGER_SECRET_KEY
 def verify_judge_key(
     request: Request, 
     session: SessionDep, 
@@ -32,7 +32,7 @@ def verify_judge_key(
     authentication: str = Header(..., description="Your Key"),
     message: str | None = Header(None, description="whatever you say bro")
 ) -> str:
-    if authentication != AUTH_KEY:
+    if authentication != JUGER_SECRET_KEY:
         raise HTTPException(status_code=401, detail="Invalid Judge Key")
     active_judgers[name] = {
         "message": message,

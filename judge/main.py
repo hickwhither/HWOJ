@@ -6,15 +6,18 @@ import importlib
 import requests
 from typing import Any
 from urllib.parse import urljoin
-from datetime import datetime
 import random, json
 import os, subprocess
 
-PROBLEM_PATH = "/home/oj/TBCOJ/tmp/problems"
+PROBLEM_PATH = "/app/problems"
+JUDGER_KEY = open(os.path.join(PROBLEM_PATH, "key"), "r").read()
+try:
+    from .local_settings import *
+except ImportError:
+    pass
 
 parser = argparse.ArgumentParser(description="EPenguinOJ judge worker")
 parser.add_argument("--name", type=str, default=None)
-parser.add_argument("--key", type=str)
 parser.add_argument("--box_id", default=0)
 parser.add_argument("--server_url", default="http://127.0.0.1:8000")
 parser.add_argument("--poll_interval", type=float, default=3.0)
@@ -22,7 +25,6 @@ parser.add_argument("--once", action="store_true")
 args = parser.parse_args()
 
 JUDGER_NAME = args.name
-JUDGER_KEY = args.key
 BOX_ID = args.box_id
 SERVER_URL = args.server_url
 POLL_INTERVAL = args.poll_interval

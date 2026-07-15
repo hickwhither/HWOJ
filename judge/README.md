@@ -23,7 +23,6 @@ docker run --rm \
   -d \
   epenguinoj-judge \
   --name <ga>
-  --key <key>
   --server_url <url> \
   --poll_interval <seconds>
 ```

@@ -7,5 +7,3 @@ dist/
 wheels/
 *.egg-info
 .venv
-
-tmp

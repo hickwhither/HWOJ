@@ -5,4 +5,33 @@ DEMO: https://test.hw.io.vn/
 ![Home](Home.png)
 ![Problems](Problems.png)
 
-[INSTALLATION](/INSTALLATION.md)
+# Installing the site
+
+Requirements:
+- mariadb
+- uv (https://docs.astral.sh/uv/getting-started/installation)
+- nodejs (https://nodejs.org/en/download)
+
+## Create database and user
+
+Install mariadb
+```sh
+$ apt update
+$ apt install mariadb-server libmysqlclient-dev
+```
+
+Create database and user
+```sh
+$ sudo mysql
+mariadb> CREATE DATABASE epenguin DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_general_ci;
+mariadb> GRANT ALL PRIVILEGES ON epenguin.* TO 'epenguin'@'localhost' IDENTIFIED BY '<mariadb user password>';
+mariadb> exit
+```
+
+[BACKEND](/backend/README.md)
+
+[FRONTEND](/EpenguinOJ-frontend/README.md)
+
+[JUDGE](/judge/README.md)
+
+[Authentication Bot](/CKTOJ_DISCORDBOT/README.md)

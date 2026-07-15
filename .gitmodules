@@ -1,3 +1,6 @@
 [submodule "EpenguinOJ-frontend"]
 	path = EpenguinOJ-frontend
 	url = https://github.com/hickwhither/EpenguinOJ-frontend.git
+[submodule "CKTOJ_DISCORDBOT"]
+	path = CKTOJ_DISCORDBOT
+	url = https://github.com/hickwhither/CKTOJ_DISCORDBOT.git

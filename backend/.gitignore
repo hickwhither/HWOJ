@@ -8,4 +8,4 @@ wheels/
 *.egg-info
 .venv
 
-tmp
+database.db
