@@ -129,20 +129,10 @@ def get_session():
 def init_db():
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
-        if not session.get(User, "admin"):
-            admin_user = User(username="admin", password=pwd.hash("admin"), email="admin@example.com")
-            session.add(admin_user)
-            session.commit()
-            session.refresh(admin_user)
-        else:
-            admin_user = session.get(User, 'admin')
         if not session.get(Problem, "aplusb"):
-            config = json.load(open("example/aplusb/.json", "r"))
             aplusb = Problem(
                 code="aplusb", name="A plus B", is_public=True,
                 statement=open("example/aplusb.md", "r").read(),
-                authors = [admin_user],
-                **config
             )
             session.add(aplusb)
             session.commit()
