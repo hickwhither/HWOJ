@@ -1,9 +1,0 @@
-requests
-python-dotenv
-itsdangerous
-
-fastapi[standard]
-
-sqlmodel
-pymysql
-pwdlib[argon2]

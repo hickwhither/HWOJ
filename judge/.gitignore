@@ -1,9 +1,0 @@
-# Python files
-local_settings.py
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-.venv
