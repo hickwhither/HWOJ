@@ -1,0 +1,3 @@
+[submodule "EpenguinOJ-frontend"]
+	path = EpenguinOJ-frontend
+	url = https://github.com/hickwhither/EpenguinOJ-frontend.git
