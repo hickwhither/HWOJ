@@ -9,3 +9,5 @@ wheels/
 .venv
 
 tmp
+.env
+database.db

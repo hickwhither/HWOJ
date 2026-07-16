@@ -1,4 +1,4 @@
-EpenguinOJ
+HWOJ
 
 DEMO: https://test.hw.io.vn/
 
@@ -28,10 +28,10 @@ mariadb> GRANT ALL PRIVILEGES ON hwoj.* TO 'hwoj'@'localhost' IDENTIFIED BY '<ma
 mariadb> exit
 ```
 
-[BACKEND](/backend/README.md)
+[BACKEND](/R-backend.md)
 
-[FRONTEND](/EpenguinOJ-frontend/README.md)
+[FRONTEND](/HWOJ-frontend/README.md)
 
-[JUDGE](/judge/README.md)
+[JUDGE](/R-judge.md)
 
 [Authentication Bot](/CKTOJ_DISCORDBOT/README.md)
