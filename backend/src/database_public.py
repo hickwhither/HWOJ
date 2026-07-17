@@ -7,9 +7,11 @@ class UserPublic(SQLModel):
     username: str
     nickname: str | None
     avatar_url: str | None
+    rank: str | None
+    badges: list[str]
 
 class UserView(UserPublic):
-    bio: str
+    bio: str | None
 
 
 # Problem

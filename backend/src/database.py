@@ -5,8 +5,8 @@ from datetime import datetime
 
 # Links
 class ProblemAuthorLinks(SQLModel, table=True):
-    user_username: int = Field(foreign_key="user.username", primary_key=True)
-    problem_code: int = Field(foreign_key="problem.code", primary_key=True)
+    user_username: str = Field(foreign_key="user.username", primary_key=True)
+    problem_code: str = Field(foreign_key="problem.code", primary_key=True)
 
 
 # User
@@ -15,11 +15,15 @@ class UserBase(SQLModel):
     username: str = Field(primary_key=True, index=True)
     password: str = Field(nullable=False)
     email: str = Field(unique=True, index=True)
+    discord_id: int | None = Field(default=None, index=True)
 
     # Profiles
     nickname: str | None = Field(default=None)
     avatar_url: str | None = Field(default=None)
     bio: str | None = Field(default=None)
+    
+    rank: str | None = Field(default=None)
+    badges: list[str] = Field(default=[], sa_column=Column(JSON))
 
     # Permissions
     active: bool = Field(default=True, index=True)
@@ -43,7 +47,7 @@ class ProblemBase(SQLModel):
     code: str = Field(primary_key=True, index=True)
     name: str = Field(default="No name", index=True)
     is_public: bool = Field(default=False, index=True)    
-    statement: str = Field(default="No statement")
+    statement: str = Field(default="No statement", sa_type=TEXT)
 
 class Problem(ProblemBase, table=True):
     authors: list["User"] = Relationship(back_populates="problems", link_model=ProblemAuthorLinks)
@@ -76,7 +80,7 @@ class SUBMISSION_VERDICT(str, Enum):
 
 class Submission(SQLModel, table=True):
     id: int = Field(primary_key=True)
-    user_username: int = Field(foreign_key="user.username")
+    user_username: str = Field(foreign_key="user.username")
     user: "User" = Relationship(back_populates="submissions")
     problem_code: str = Field(foreign_key="problem.code")
     problem: "Problem" = Relationship(back_populates="submissions")
@@ -116,8 +120,11 @@ class Submission(SQLModel, table=True):
 from pwdlib import PasswordHash
 pwd = PasswordHash.recommended()
 
-sqlite_url = f"sqlite:///database.db"
-engine = create_engine(sqlite_url, connect_args={"check_same_thread": False})
+import os
+if os.getenv('DATABASE_URL'):
+    engine = create_engine(os.getenv('DATABASE_URL'))
+else:
+    engine = create_engine("sqlite:///database.db", connect_args={"check_same_thread": False})
 
 def get_session():
     with Session(engine) as session:

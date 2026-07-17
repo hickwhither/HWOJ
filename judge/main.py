@@ -8,9 +8,12 @@ from typing import Any
 from urllib.parse import urljoin
 import random, json
 import os, subprocess
+from dotenv import load_dotenv
+load_dotenv()
 
 PROBLEM_PATH = "/app/problems"
-JUDGER_KEY = open(os.path.join(PROBLEM_PATH, "key"), "r").read()
+JUDGER_KEY = os.getenv('JUDGER_KEY')
+
 try:
     from .local_settings import *
 except ImportError:
@@ -59,7 +62,7 @@ def post(path: str, payload: dict = None) -> dict[str, Any]:
     response.raise_for_status()
     return response.json() if response.text else None
 
-from judgers import standard
+from judge.judgers import dmoj
 
 def compile_problem_sources(problem_path: str):
     for root, dirs, files in os.walk(problem_path):
@@ -119,7 +122,7 @@ def run(language, source, problem_code, box_id):
             
         config = json.load(open(os.path.join(problem_path, '.json'), 'r'))
 
-        res = standard.judge(language.executable, f"./code.{language.compiled_file_extension}", problem_path, config, box_id)
+        res = dmoj.judge(language.executable, f"./code.{language.compiled_file_extension}", problem_path, config, box_id)
         res['error'] = str(error)
         return res
     except Exception as exc:

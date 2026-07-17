@@ -28,6 +28,23 @@ mariadb> GRANT ALL PRIVILEGES ON hwoj.* TO 'hwoj'@'localhost' IDENTIFIED BY '<ma
 mariadb> exit
 ```
 
+other commands..
+```sh
+# List of Databases
+mariadb> SHOW DATABASES WHERE `Database` NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys');
+
+# List of users
+SELECT User, Host FROM mysql.user;
+
+# Backup
+mariadb-dump -u hwoj -p hwoj > backup_hwoj.sql
+# Restore
+mariadb -u root -p hwoj < backup_hwoj.sql
+
+# Delete databases
+mariadb> DROP DATABASE IF EXISTS hwoj;
+```
+
 [BACKEND](/R-backend.md)
 
 [FRONTEND](/HWOJ-frontend/README.md)
