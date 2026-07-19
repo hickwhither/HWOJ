@@ -1,7 +1,7 @@
-from fastapi import *
 from sqlmodel import *
 from typing import *
 from datetime import datetime
+from sqlalchemy import Index
 
 # Links
 class ProblemAuthorLinks(SQLModel, table=True):
@@ -22,12 +22,12 @@ class UserBase(SQLModel):
     avatar_url: str | None = Field(default=None)
     bio: str | None = Field(default=None)
     
-    rank: str | None = Field(default=None)
+    rank: str | None = Field(default=None, index=True)
     badges: list[str] = Field(default=[], sa_column=Column(JSON))
 
     # Permissions
     active: bool = Field(default=True, index=True)
-    superuser: bool = Field(default=False)
+    superuser: bool = Field(default=False, index=True)
     permissions: list[str] = Field(default_factory=list, sa_column=Column(JSON))
 
     # Timestamps
@@ -87,10 +87,14 @@ class SUBMISSION_VERDICT(str, Enum):
     ABORTED = "AB"
 
 class Submission(SQLModel, table=True):
-    id: int = Field(primary_key=True)
+    __table_args__ = (
+        Index("idx_user_problem", "user_username", "problem_code"),
+    )
+    
+    id: int = Field(primary_key=True, index=True)
     user_username: str = Field(foreign_key="user.username")
-    user: "User" = Relationship(back_populates="submissions")
     problem_code: str = Field(foreign_key="problem.code")
+    user: "User" = Relationship(back_populates="submissions")
     problem: "Problem" = Relationship(back_populates="submissions")
 
     date_created: datetime = Field(default_factory=datetime.now, index=True)
@@ -125,6 +129,7 @@ class Submission(SQLModel, table=True):
 
 
 # -- init --
+from fastapi import *
 from pwdlib import PasswordHash
 pwd = PasswordHash.recommended()
 import os, json
@@ -149,7 +154,6 @@ def init_db():
                         cpp_file_path = os.path.join(root, file)
                         file_path = os.path.join(root, os.path.splitext(file)[0])
                         source = open(cpp_file_path, "r").read()
-                        print(file_path, file_path[14:])
             config = json.load(open("example/aplusb/config.json", "r"))
             aplusb = Problem(
                 code="aplusb", name="A plus B", is_public=True,
