@@ -5,8 +5,9 @@ from pydantic import BaseModel
 from sqlmodel import select
 import os
 
-from src import SessionDep
-from src import Submission, SUBMISSION_STATUS
+from src.database import SessionDep
+from src.database import Submission, SUBMISSION_STATUS
+from src.database import Problem, ProblemBase
 
 
 class SubmissionUpdateResult(BaseModel):
@@ -21,27 +22,24 @@ class SubmissionJudge(BaseModel):
     id: int
     language: str
     source: str
-    problem_code: str
+    problem: ProblemBase
 
 active_judgers = {}    
 
 # -- DEPENDENCIES / HELPERS --
-def verify_judge_key(
-    request: Request, 
-    session: SessionDep, 
+def judge_active(
+    request: Request,
+    session: SessionDep,
     name: str = Header(..., description="Your name"),
-    authentication: str = Header(..., description="Your Key"),
     message: str | None = Header(None, description="whatever you say bro")
 ) -> str:
-    if authentication != os.getenv('JUDGER_KEY'):
-        raise HTTPException(401, "Invalid Judge Key")
     active_judgers[name] = {
         "message": message,
         "last_seen": datetime.now()
     }
     return name
 
-ActiveJudge = Depends(verify_judge_key)
+ActiveJudge = Depends(judge_active)
 
 # -- ROUTES --
 router = APIRouter(prefix="/judger", tags=["judger"])

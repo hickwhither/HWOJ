@@ -47,7 +47,6 @@ class PasswordForm(BaseModel):
 @router.post("/confirm-action")
 def confirm_action(request: Request, data: ConfirmActionRequest, session: SessionDep):
     try:
-        print(data)
         payload = jwt.decode(data.secret, SECRET_KEY, algorithms=[ALGORITHM])
         discord_id = payload.get("discord_id")
     except jwt.ExpiredSignatureError:

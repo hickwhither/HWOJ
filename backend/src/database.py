@@ -48,6 +48,14 @@ class ProblemBase(SQLModel):
     name: str = Field(default="No name", index=True)
     is_public: bool = Field(default=False, index=True)    
     statement: str = Field(default="No statement", sa_type=TEXT)
+    
+    programs: dict[str, str] | None = Field(default={}, sa_column=Column(JSON))
+    type: str | None = Field(default=None)
+    time_limit: float = Field(default=1)
+    memory_limit: int = Field(default=32768)
+    input: str | None = Field(default=None)
+    output: str | None = Field(default=None)
+    subtasks: dict[str, dict[str, Any]] | None = Field(default={}, sa_column=Column(JSON))
 
 class Problem(ProblemBase, table=True):
     authors: list["User"] = Relationship(back_populates="problems", link_model=ProblemAuthorLinks)
@@ -88,7 +96,7 @@ class Submission(SQLModel, table=True):
     date_created: datetime = Field(default_factory=datetime.now, index=True)
     
     # judger_id: str | None = Field(default=None, foreign_key="judger.id")
-    # judger: "Judger" = Relationship()\
+    # judger: "Judger" = Relationship()
     judger_name: str | None = Field(default = None)
     judged_date: datetime | None = Field(default=None)
 
@@ -119,8 +127,8 @@ class Submission(SQLModel, table=True):
 # -- init --
 from pwdlib import PasswordHash
 pwd = PasswordHash.recommended()
+import os, json
 
-import os
 if os.getenv('DATABASE_URL'):
     engine = create_engine(os.getenv('DATABASE_URL'))
 else:
@@ -133,10 +141,21 @@ def get_session():
 def init_db():
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
-        if not session.get(Problem, "aplusb"):
+        if not session.get(Problem, "aplusb"): # Import problem
+            programs = {}
+            for root, dirs, files in os.walk("example/aplusb"):
+                for file in files:
+                    if file.endswith(".cpp"):
+                        cpp_file_path = os.path.join(root, file)
+                        file_path = os.path.join(root, os.path.splitext(file)[0])
+                        source = open(cpp_file_path, "r").read()
+                        print(file_path, file_path[14:])
+            config = json.load(open("example/aplusb/config.json", "r"))
             aplusb = Problem(
                 code="aplusb", name="A plus B", is_public=True,
-                statement=open("example/aplusb.md", "r").read(),
+                statement=open("example/aplusb/statement.md", "r").read(),
+                programs=programs,
+                **config
             )
             session.add(aplusb)
             session.commit()

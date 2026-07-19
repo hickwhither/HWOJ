@@ -2,7 +2,6 @@ from fastapi import APIRouter, Query, HTTPException, Request, Depends
 from sqlmodel import func, select, or_
 from pydantic import BaseModel
 from typing import Optional
-import pydantic
 
 router = APIRouter(prefix="/problem", tags=["problem"])
 
@@ -36,7 +35,7 @@ class ProblemPageResponse(BaseModel):
     total_pages: int
 
 # -- ROUTERS --
-@router.get("", response_model=ProblemPageResponse)
+@router.get("/", response_model=ProblemPageResponse)
 def problem_list(
     session: SessionDep,
     page: int = Query(1, ge=1),
@@ -75,11 +74,14 @@ def get_problem(session: SessionDep, id: str):
     return problem
 
 @router.post("/{id}/submit")
-def submit(session: SessionDep, id: str, submitF: SubmissionCreate, current_user: User = Depends(verify_auth)):
+def submit(session: SessionDep, id: str, submit_form: SubmissionCreate, current_user: User = Depends(verify_auth)):
     db_problem = session.get(Problem, id)
     if not db_problem:
         raise HTTPException(404, "Problem not found")
-    submit_data = submitF.model_dump()
+    if submit_form.language not in ["cpp", "py", "text"]:
+        raise HTTPException(400, "Invalid language")
+    
+    submit_data = submit_form.model_dump()
     new_submission = Submission(user=current_user, problem=db_problem, **submit_data)
     session.add(new_submission)
     session.commit()

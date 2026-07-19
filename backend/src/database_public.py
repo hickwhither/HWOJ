@@ -23,6 +23,10 @@ class ProblemPublic(SQLModel):
 
 class ProblemView(ProblemPublic):
     statement: str
+    time_limit: float
+    memory_limit: int
+    input: str | None
+    output: str | None
 
 class ProblemCreate(SQLModel):
     code: str

@@ -30,7 +30,6 @@ router = APIRouter(
 @router.get("/user")
 def is_user_exists(session: SessionDep, discord_id:int):
     user = session.exec(select(User).where(User.discord_id == discord_id)).first()
-    print(user)
     return True if user else False
 
 @router.post("/create")

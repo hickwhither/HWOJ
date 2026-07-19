@@ -13,7 +13,7 @@ def create_app():
     app = FastAPI(title=os.getenv('APP_NAME'), description=f"{os.getenv('APP_NAME')} backend")
     init_db()
     
-    allow_origins = [os.getenv("ALLOWED_ORIGINS")] or ["localhost", "127.0.0.1"]
+    allow_origins = [os.getenv("ALLOWED_ORIGINS")] + ["http://localhost:5173", "http://127.0.0.1:5173"]
     print("ALLOWED ORIGINS", allow_origins)
 
     app.add_middleware(
@@ -29,6 +29,8 @@ def create_app():
         secret_key=os.getenv("SECRET_KEY"),
         session_cookie="session",
         max_age=60 * 60 * 24 * 7, # 7 days
+        same_site="none", # Cookie from other domains
+        https_only=True,
     )
 
     from fastapi.responses import FileResponse
