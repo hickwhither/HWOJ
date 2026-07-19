@@ -9,7 +9,6 @@ import os
 
 JUDGER_SCRIPT = "main.py"
 SERVER_URL = "http://127.0.0.1:8000"
-JUDGER_KEY = "Change_This_Key_Later__"
 POLL_INTERVAL = "3.0"
 
 JUDGERS_CONFIG = [
@@ -38,7 +37,6 @@ def start_judger(config, root_dir):
     cmd = [
         sys.executable, script_path,
         "--name", name,
-        "--key", JUDGER_KEY,
         "--box_id", box_id,
         "--server_url", SERVER_URL,
         "--poll_interval", POLL_INTERVAL

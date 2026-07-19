@@ -1,5 +1,5 @@
 class Executor:
-    language_id = "python"
+    language_id = "text"
     file_extension = "txt"
     compiled_file_extension = "txt"
     version = "cat --version"
