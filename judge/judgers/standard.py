@@ -19,10 +19,10 @@ def judge(executable, exec_path, problem, box_id=0):
         validator = os.path.join("cache", problem["code"], subtask["validator"])
         for s in subtask["seeds"]:
             # Run
-            subprocess.run([generator, str(s)], stdout=open("input", "w"))
-            subprocess.run([answer], stdin=open("input", "r"), stdout=open("answer", "w"))
+            subprocess.run([generator, str(s)], stdout=open(f".{box_id}/input", "w"))
+            subprocess.run([answer], stdin=open(f".{box_id}/input", "r"), stdout=open("answer", "w"))
             res = isolate_run(
-                executable, exec_path, "input", "output", "error",
+                executable, exec_path, f".{box_id}/input", f".{box_id}/output", f".{box_id}/error",
                 problem.get("time_limit", 2000),
                 problem.get("memory_limit", 32768),
                 box_id
@@ -43,8 +43,8 @@ def judge(executable, exec_path, problem, box_id=0):
 
             # File read
             def safe_read(filename):
-                if os.path.exists(filename):
-                    with open(filename, "r", errors='ignore') as f:
+                if os.path.exists(f".{box_id}/{filename}"):
+                    with open(f".{box_id}/{filename}", "r", errors='ignore') as f:
                         return f.read(128)
                 return ""
             res['input'] = safe_read("input")

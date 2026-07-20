@@ -125,7 +125,7 @@ class Submission(SQLModel, table=True):
 
     # Payload
     language: str = Field(index=True)
-    source: str = Field()
+    source: str = Field(sa_type=TEXT)
 
 
 # -- init --

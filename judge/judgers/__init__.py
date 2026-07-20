@@ -66,10 +66,10 @@ def build_programs(problem_code: str, programs: dict[str, str]):
 
     return 0, None
 
-def build_submission(language:str, source:str):
-    original_file = f"code.{language.file_extension}"
-    output_file = f"code.{language.compiled_file_extension}"
-    with open(f"code.{language.file_extension}", "w") as f: 
+def build_submission(box_id:str, language:str, source:str):
+    original_file = f".{box_id}/code.{language.file_extension}"
+    output_file = f".{box_id}/code.{language.compiled_file_extension}"
+    with open(f".{box_id}/code.{language.file_extension}", "w") as f: 
         f.write(source)
     res = subprocess.run(
         language.command.format(original_file=original_file, output_file=output_file).split(' '),
@@ -87,14 +87,14 @@ def global_judge(box_id, language, source, problem, *args, **kwargs):
                 "status": "IE",
                 "error": str(error)
             }
-        returncode, error = build_submission(language, source)
+        returncode, error = build_submission(box_id, language, source)
         if returncode:
             return {
                 "status": "CE",
                 "error": str(error)
             }
 
-        res = standard.judge(language.executable, f"./code.{language.compiled_file_extension}", problem, box_id)
+        res = standard.judge(language.executable, f"./.{box_id}/code.{language.compiled_file_extension}", problem, box_id)
         res['error'] = str(error)
         return res
     except Exception as exc:
