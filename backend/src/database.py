@@ -15,7 +15,7 @@ class UserBase(SQLModel):
     username: str = Field(primary_key=True, index=True)
     password: str = Field(nullable=False)
     email: str = Field(unique=True, index=True)
-    discord_id: int | None = Field(default=None, index=True)
+    discord_id: str | None = Field(default=None, index=True)
 
     # Profiles
     nickname: str | None = Field(default=None)

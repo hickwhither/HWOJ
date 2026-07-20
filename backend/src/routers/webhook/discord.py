@@ -19,7 +19,7 @@ class UserCreate(BaseModel):
     password: str
 
 class VerifyCreateRequest(BaseModel):   
-    discord_id: int
+    discord_id: str
 
 # -- ROUTERS --
 router = APIRouter(
@@ -28,7 +28,7 @@ router = APIRouter(
 )
 
 @router.get("/user")
-def is_user_exists(session: SessionDep, discord_id:int):
+def is_user_exists(session: SessionDep, discord_id:str):
     user = session.exec(select(User).where(User.discord_id == discord_id)).first()
     return True if user else False
 

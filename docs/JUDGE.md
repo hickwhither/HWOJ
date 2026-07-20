@@ -5,6 +5,8 @@ Judge worker receives and judges submission from backend (HWOJ-example-packages)
 - Same host: just volume into it.
 - Remote server judge: (idk)
 
+## By supervisord
+
 ## By Docker
 Build
 ```bash

@@ -31,7 +31,7 @@ class signup_button(discord.ui.View):
             resp = requests.get(
                 f"{BACKEND}/discord/user",
                 headers=HEADERS,
-                params=dict(discord_id=user.id)
+                params=dict(discord_id=str(user.id))
             )
             return resp.json()
         except:
@@ -41,7 +41,7 @@ class signup_button(discord.ui.View):
         resp = requests.post(
             f"{BACKEND}/discord/create",
             headers=HEADERS,
-            json={"discord_id": user.id},
+            json={"discord_id": str(user.id)},
             timeout=10
         )
         resp.raise_for_status()
@@ -50,7 +50,7 @@ class signup_button(discord.ui.View):
     async def button_handler(self, interaction: discord.Interaction, type: str):
         try:
             secret = self.create_verify(interaction.user)
-            params = urlencode({"type": type, "secret": secret, "discord_id": interaction.user.id})
+            params = urlencode({"type": type, "secret": secret})
             link = f"{FRONTEND}/discord?{params}"
 
             view = discord.ui.View()
