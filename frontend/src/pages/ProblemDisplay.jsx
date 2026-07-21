@@ -49,9 +49,9 @@ export default function ProblemDisplay() {
       <div className="column is-one-fifth">
         <div className='buttons is-centered'>
           <button onClick={() => loginRequired(() => setIsSubmitModalOpen(true))} className="button is-primary is-fullwidth">Submit</button>
-          <button onClick={() => openSubmissionList('status')} className="button is-info"><i className="fas fa-signal"/></button>
-          <button onClick={() => openSubmissionList('my-submissions')} className="button is-info"><i className="fas fa-user-circle"/></button>
-          <button onClick={() => openSubmissionList('leaderboard')} className="button is-link"><i className="fas fa-crown"/></button>
+          <button onClick={() => loginRequired(() => openSubmissionList('status'))} className="button is-info"><i className="fas fa-signal"/></button>
+          <button onClick={() => loginRequired(() => openSubmissionList('my-submissions'))} className="button is-info"><i className="fas fa-user-circle"/></button>
+          <button onClick={() => loginRequired(() => openSubmissionList('leaderboard'))} className="button is-link"><i className="fas fa-crown"/></button>
           <button className="button is-link"><i className="fas fa-edit"/></button>
         </div>
         
@@ -90,7 +90,7 @@ export default function ProblemDisplay() {
         onClose={closeSubmissionList}
         problemId={id}
         mode={submissionList.mode}
-        username={current_user.username || ""}
+        username={current_user?.username || ""}
       />
     </div>
   );

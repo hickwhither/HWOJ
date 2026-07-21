@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, HTTPException, Request, Depends
+from fastapi import APIRouter, Query, HTTPException, Depends
 from sqlmodel import func, select, or_
 from pydantic import BaseModel
 from typing import Optional
@@ -8,21 +8,10 @@ from src.models.user import User
 from src.models.problem import Problem
 from src.models.submission import Submission
 from src.models_public import ProblemView, ProblemPublic, SubmissionView, SubmissionPublic
+from .dependencies import verify_auth
 
 # CONFIGURATION
-router = APIRouter(prefix="/problem", tags=["problem"])
-
-
-# FUNCTIONS
-def verify_auth(request: Request, session: SessionDep) -> User:
-    auth_data = request.session.get("auth")
-    if not auth_data or "username" not in auth_data:
-        raise HTTPException(401, "Not authenticated")
-    username = auth_data["username"]
-    user = session.get(User, username)
-    if not user: 
-        raise HTTPException(404, "User not found")
-    return user
+router = APIRouter(prefix="/problem", tags=["problem"], dependencies=[Depends(verify_auth)])
 
 
 # SCHEMAS

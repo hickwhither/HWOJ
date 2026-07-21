@@ -4,10 +4,10 @@ import { get_request } from '../../Request';
 
 const fetchSubmissions = async ({ problemId, mode, username }) => {
   if (mode === 'leaderboard') {
-    const res = await get_request(`/problem/${problemId}/rank`);
+    const res = await get_request(`/submission/rank/${problemId}`);
     return res?.data || res || [];
   }
-  const baseUrl = `/problem/${problemId}/submissions`;
+  const baseUrl = `/submission/problem/${problemId}`;
   const url = mode === 'my-submissions' && username 
     ? `${baseUrl}?username=${encodeURIComponent(username)}` 
     : baseUrl;
@@ -64,7 +64,7 @@ export default function SubmissionList({ isOpen, onClose, problemId, mode, usern
                     <tr key={sub.id}>
                       {isRank && <td><strong>{index + 1}</strong></td>}
                       <td>#{sub.id}</td>
-                      <td>{sub.user_username}</td>
+                      <td>{sub.user?.username}</td>
                       <td><span className="tag is-light">{sub.language}</span></td>
                       <td>
                         <span className={`tag is-bold`}>
