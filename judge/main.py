@@ -17,6 +17,7 @@ parser.add_argument("--box_id", default=0)
 parser.add_argument("--server_url", default="http://127.0.0.1:8000")
 parser.add_argument("--poll_interval", type=float, default=3.0)
 parser.add_argument("--once", action="store_true")
+parser.add_argument("--work_dir", default=None, help="Directory for this worker temporary code/input/output/answer files")
 args = parser.parse_args()
 
 SECRET_KEY = os.getenv('SECRET_KEY')
@@ -24,6 +25,8 @@ JUDGER_NAME = args.name
 BOX_ID = args.box_id
 SERVER_URL = args.server_url
 POLL_INTERVAL = args.poll_interval
+WORK_DIR = args.work_dir or os.path.join("tmp", "judge", str(JUDGER_NAME))
+os.makedirs(WORK_DIR, exist_ok=True)
 
 languages = ["cpp", "python", "text"]
 lang_dict = {}
@@ -65,7 +68,7 @@ if __name__ == "__main__":
             if task:
                 print(f"-> Đang chấm bài nộp ID: {task['id']} - {task['language']}")
                 task['language'] = lang_dict[task['language']]
-                result = global_judge(box_id=BOX_ID, **task)
+                result = global_judge(box_id=BOX_ID, work_dir=WORK_DIR, **task)
                 result["id"] = task["id"]
                 post("/judger/update-result", result)
                 print(f"<- Đã gửi kết quả bài nộp ID: {task['id']} thành công.")

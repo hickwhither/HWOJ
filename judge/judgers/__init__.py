@@ -1,9 +1,11 @@
 import os, subprocess, shutil
+from pathlib import Path
 
 last_update = {}
 os.makedirs("cache", exist_ok=True)
 
 from . import standard
+
 def build_programs(problem_code: str, programs: dict[str, str]):
     target_dir = os.path.join("cache", problem_code)
     os.makedirs(target_dir, exist_ok=True)
@@ -66,10 +68,11 @@ def build_programs(problem_code: str, programs: dict[str, str]):
 
     return 0, None
 
-def build_submission(box_id:str, language:str, source:str):
-    original_file = f".{box_id}/code.{language.file_extension}"
-    output_file = f".{box_id}/code.{language.compiled_file_extension}"
-    with open(f".{box_id}/code.{language.file_extension}", "w") as f: 
+def build_submission(work_dir: str, language: str, source: str):
+    Path(work_dir).mkdir(parents=True, exist_ok=True)
+    original_file = os.path.join(work_dir, f"code.{language.file_extension}")
+    output_file = os.path.join(work_dir, f"code.{language.compiled_file_extension}")
+    with open(original_file, "w") as f:
         f.write(source)
     res = subprocess.run(
         language.command.format(original_file=original_file, output_file=output_file).split(' '),
@@ -77,9 +80,11 @@ def build_submission(box_id:str, language:str, source:str):
         text=True,
         timeout=30
     )
-    return res.returncode, res.stderr
+    return res.returncode, res.stderr, output_file
 
-def global_judge(box_id, language, source, problem, *args, **kwargs):
+def global_judge(box_id, language, source, problem, work_dir: str | None = None, *args, **kwargs):
+    work_dir = work_dir or os.path.join("tmp", "judge", f"box{box_id}")
+    Path(work_dir).mkdir(parents=True, exist_ok=True)
     try:
         returncode, error = build_programs(problem["code"], problem["programs"])
         if returncode:
@@ -87,14 +92,14 @@ def global_judge(box_id, language, source, problem, *args, **kwargs):
                 "status": "IE",
                 "error": str(error)
             }
-        returncode, error = build_submission(box_id, language, source)
+        returncode, error, exec_path = build_submission(work_dir, language, source)
         if returncode:
             return {
                 "status": "CE",
                 "error": str(error)
             }
 
-        res = standard.judge(language.executable, f"./.{box_id}/code.{language.compiled_file_extension}", problem, box_id)
+        res = standard.judge(language.executable, exec_path, problem, box_id, work_dir)
         res['error'] = str(error)
         return res
     except Exception as exc:
