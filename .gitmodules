@@ -1,6 +1,3 @@
 [submodule "CKTOJ_DISCORDBOT"]
 	path = CKTOJ_DISCORDBOT
 	url = https://github.com/hickwhither/CKTOJ_DISCORDBOT.git
-[submodule "HWOJ-frontend"]
-	path = HWOJ-frontend
-	url = https://github.com/hickwhither/HWOJ-frontend.git
