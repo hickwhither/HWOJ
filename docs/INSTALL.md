@@ -52,6 +52,7 @@ Install nodejs packages
 ```sh
 $ cd HWOJ-frontend
 $ npm i
+$ npm run build # build
 ```
 
 Run test

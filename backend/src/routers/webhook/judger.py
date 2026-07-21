@@ -6,8 +6,8 @@ from sqlmodel import select
 import os
 
 from src.database import SessionDep
-from src.database import Submission, SUBMISSION_STATUS
-from src.database import Problem, ProblemBase
+from src.models.submission import Submission, SUBMISSION_STATUS
+from src.models.problem import Problem, ProblemBase
 
 
 class SubmissionUpdateResult(BaseModel):

@@ -1,37 +1,34 @@
-from fastapi import APIRouter, Request, HTTPException
+import os
+import jwt
+from fastapi import APIRouter, Request, HTTPException, status
 from pydantic import BaseModel, EmailStr
-
-import os, jwt
 from pwdlib import PasswordHash
-pwd = PasswordHash.recommended()
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = "HS256"
+from sqlmodel import select
 
+from src.database import SessionDep
+from src.models.user import User
+from src.models_public import UserView
+
+# CONFIGURATIONS
+pwd = PasswordHash.recommended()
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# -- MODELS --
-from src import SessionDep, User
-from src.database_public import UserPublic, UserView
-from sqlmodel import select, func
 
-# class UserCreate(BaseModel):
+# SCHEMAS
+# class CreateAccount(BaseConfirmRequest):
 #     username: str
 #     email: EmailStr
 #     password: str
-class ConfirmActionRequest(BaseModel):
-    secret: str
-    action: str
-    username: str | None = None
-    email: EmailStr | None = None
-    password: str | None = None
+
 
 class PasswordForm(BaseModel):
     username: str
     password: str
 
-# -- ROUTERS --
-# @router.post("/signup", response_model=UserView) # Commented for "confirm-action" (read below)
-# def signup(request: Request, new_user: UserCreate, session: SessionDep):
+
+# ROUTERS
+# @router.post("/signup", response_model=UserView)
+# def signup(request: Request, new_user: CreateAccount, session: SessionDep):
 #     if session.get(User, new_user.username):
 #         raise HTTPException(400, "User exists.")
 #     if session.exec(select(User).where(User.email == new_user.email)).first():
@@ -44,63 +41,15 @@ class PasswordForm(BaseModel):
 #     request.session['auth'] = {"username": user.username}
 #     return user
 
-@router.post("/confirm-action")
-def confirm_action(request: Request, data: ConfirmActionRequest, session: SessionDep):
-    try:
-        payload = jwt.decode(data.secret, SECRET_KEY, algorithms=[ALGORITHM])
-        discord_id = payload.get("discord_id")
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(408, "Expired token")
-    except jwt.InvalidTokenError:
-        raise HTTPException(408, "Invalid Token")
-
-    if data.action == "check": return
-    elif data.action == "create_account":
-        if not data.username or not data.email:
-            raise HTTPException(400, "Username và Email là bắt buộc để tạo tài khoản.")
-            
-        if session.get(User, data.username):
-            raise HTTPException(400, "Tên đăng nhập đã tồn tại.")
-        if session.exec(select(User).where(User.email == data.email)).first():
-            raise HTTPException(400, "Email đã được sử dụng.")
-        if session.exec(select(User).where(User.discord_id == discord_id)).first():
-            raise HTTPException(400, "Discord ID exists.")
-        
-        new_user = User(
-            username=data.username,
-            email=data.email,
-            password=pwd.hash(data.password)
-        )
-        new_user.discord_id = discord_id
-        session.add(new_user)
-        session.commit()
-        session.refresh(new_user)
-        request.session['auth'] = {"username": new_user.username}
-        return
-    elif data.action in ["change_password", "forgot_password"]:
-        user = session.exec(select(User).where(User.discord_id == discord_id)).first()
-        if not user:
-            raise HTTPException(404, "No user with matching Discord ID.")
-        user.password = pwd.hash(data.password)
-        session.add(user)
-        session.commit()
-        request.session['auth'] = {"username": user.username}
-        return
-    elif data.action == "quick_login":
-        request.session['auth'] = {"username": user.username}
-        return
-
-    else:
-        raise HTTPException(400, "Hành động không hợp lệ.")
 
 @router.post("/signin", response_model=UserView)
-def signin(request: Request, PasswordForm: PasswordForm, session: SessionDep):
-    user = session.get(User, PasswordForm.username)
-    if not user or not pwd.verify(PasswordForm.password, user.password):
+def signin(request: Request, payload: PasswordForm, session: SessionDep):
+    user = session.get(User, payload.username)
+    if not user or not pwd.verify(payload.password, user.password):
         raise HTTPException(400, "Incorrect username or password")
-
     request.session['auth'] = {"username": user.username}
     return user
+
 
 @router.post('/signout')
 def signout(request: Request):

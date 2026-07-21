@@ -1,6 +1,6 @@
 import os, jwt
 from datetime import *
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter
 from pydantic import BaseModel, EmailStr
 
 from pwdlib import PasswordHash
@@ -9,9 +9,9 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 
 # -- MODELS --
-from src import SessionDep, User
-from src.database_public import UserPublic, UserView
-from sqlmodel import select, func
+from src.database import SessionDep
+from src.models.user import User
+from sqlmodel import select
 
 class UserCreate(BaseModel):
     username: str

@@ -3,14 +3,17 @@ from sqlmodel import func, select, or_
 from pydantic import BaseModel
 from typing import Optional
 
+from src.database import SessionDep
+from src.models.user import User
+from src.models.problem import Problem
+from src.models.submission import Submission
+from src.models_public import ProblemView, ProblemPublic, SubmissionView, SubmissionPublic
+
+# CONFIGURATION
 router = APIRouter(prefix="/problem", tags=["problem"])
 
-# -- MODELS --
-from src.database import SessionDep
-from src.database import User, Problem, Submission
-from src.database_public import ProblemView, ProblemPublic
-from src.database_public import SubmissionView, SubmissionPublic
 
+# FUNCTIONS
 def verify_auth(request: Request, session: SessionDep) -> User:
     auth_data = request.session.get("auth")
     if not auth_data or "username" not in auth_data:
@@ -21,16 +24,20 @@ def verify_auth(request: Request, session: SessionDep) -> User:
         raise HTTPException(404, "User not found")
     return user
 
+
+# SCHEMAS
 class SubmissionCreate(BaseModel):
     language: str
     source: str
+
 
 class ProblemPageResponse(BaseModel):
     problems: list[ProblemPublic]
     total: int
     total_pages: int
 
-# -- ROUTERS --
+
+# ROUTERS
 @router.get("", response_model=ProblemPageResponse)
 def get_problem_list(
     session: SessionDep,
@@ -57,58 +64,36 @@ def get_problem_list(
         "total_pages": total_pages
     }
 
-@router.get("/{id}", response_model=ProblemView)
-def get_problem(session: SessionDep, id: str):
-    problem = session.get(Problem, id)
+
+@router.get("/{code}", response_model=ProblemView)
+def get_problem(session: SessionDep, code: str):
+    statement = select(Problem).where(Problem.code == code)
+    results = session.exec(statement)
+    problem = results.one_or_none()
     if not problem:
         raise HTTPException(404, "Problem not found")
     return problem
 
-@router.post("/{id}/submit")
+
+@router.post("/{code}/submit")
 def post_submit(
     session: SessionDep,
-    id: str,
+    code: str,
     submit_form: SubmissionCreate,
     current_user: User = Depends(verify_auth)
 ):
-    db_problem = session.get(Problem, id)
-    if not db_problem:
+    statement = select(Problem).where(Problem.code == code)
+    results = session.exec(statement)
+    problem = results.one_or_none()
+    if not problem:
         raise HTTPException(404, "Problem not found")
     if submit_form.language not in ["cpp", "py", "text"]:
         raise HTTPException(400, "Invalid language")
     
     submit_data = submit_form.model_dump()
-    new_submission = Submission(user=current_user, problem=db_problem, **submit_data)
+    new_submission = Submission(user=current_user, problem=problem, **submit_data)
     session.add(new_submission)
     session.commit()
     session.refresh(new_submission)
-
-@router.get('/{id}/submissions')
-def get_submission_list(
-    session: SessionDep, 
-    id: str,
-    username: str | None = Query(default=None, description="Filter by username")
-):
-    statement = select(Submission).where(Submission.problem_code == id)
-    if username:
-        statement = statement.where(Submission.user_username == username)
-    statement = statement.order_by(Submission.id.desc())
-    results = session.exec(statement).all()
-    return results
-
-@router.get('/{id}/rank')
-def get_best_submission_list(
-    session: SessionDep,
-    id: str,
-):
-    statement = (
-        select(Submission)
-        .where(Submission.problem_code == id)
-        .where(Submission.status == "D") 
-        # Most percentage -> Least time -> Least memory
-        .order_by(Submission.percentage.desc(), Submission.time_used.asc(), Submission.memory_used.asc())
-        .limit(100)
-    )
-    results = session.exec(statement).all()
-    return results
+    return new_submission.id
 

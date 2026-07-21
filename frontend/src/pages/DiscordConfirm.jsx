@@ -14,36 +14,49 @@ export default function DiscordConfirm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
+  const [isCheckingToken, setIsCheckingToken] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (action === 'quick_login' && secret) {
+    if (!action || !secret) {
+      toast.error("Đường dẫn thiếu thông tin xác nhận.");
+      navigate('/', { replace: true });
+      return;
+    }
+
+    validateTokenAndProceed();
+  }, [action, secret]);
+
+  const validateTokenAndProceed = async () => {
+    setIsCheckingToken(true);
+
+    const checkRes = await post_request('/confirm/check', { secret });
+
+    if (!checkRes || checkRes.status < 200 || checkRes.status >= 300) {
+      const errorMsg = checkRes?.data?.detail || "Token không hợp lệ hoặc đã hết hạn.";
+      toast.error(errorMsg);
+      navigate('/', { replace: true });
+      return;
+    }
+    setIsCheckingToken(false);
+    if (action === 'quick_login') {
       handleQuickLogin();
     }
-  }, [action, secret]);
+  };
 
   const handleQuickLogin = async () => {
     setLoading(true);
     setError(null);
     
-    const res = await post_request('/auth/confirm-action', {
-      secret: secret,
-      action: 'quick_login'
-    });
-    
-    // Kiểm tra lỗi 408 Timeout
-    if (res && res.status === 408) {
-      toast.error(res.data?.detail || 'Hết thời gian yêu cầu (408).');
-      navigate('/');
-      return;
-    }
+    const res = await post_request('/confirm/quick-login', { secret });
 
     if (res && res.status >= 200 && res.status < 300) {
       toast.success("Đăng nhập thành công!");
-      navigate('/');
+      navigate('/', { replace: true });
     } else {
-      setError(res?.data?.detail || "Xác nhận thất bại hoặc token hết hạn.");
+      toast.error(res?.data?.detail || "Đăng nhập nhanh thất bại.");
+      navigate('/', { replace: true });
     }
     setLoading(false);
   };
@@ -53,43 +66,49 @@ export default function DiscordConfirm() {
     setLoading(true);
     setError(null);
 
-    const payload = {
-      secret: secret,
-      action: action,
-      username: action === 'create_account' ? username : undefined,
-      email: action === 'create_account' ? email : undefined,
-      password: (action === 'create_account' || action === 'change_password') ? password : undefined
-    };
+    let endpoint = '';
+    let payload = { secret };
 
-    const res = await post_request('/auth/confirm-action', payload);
-    
-    // Kiểm tra lỗi 408 Timeout
-    if (res && res.status === 408) {
-      console.log(res.data);
-      toast.error(res.data?.detail || '408 Error');
-      navigate('/');
+    if (action === 'create_account') {
+      endpoint = '/confirm/create-account';
+      payload = { secret, username, email, password };
+    } else if (action === 'change_password') {
+      endpoint = '/confirm/reset-password';
+      payload = { secret, password };
+    } else {
+      toast.error("Hành động không hợp lệ.");
+      navigate('/', { replace: true });
       return;
     }
+
+    const res = await post_request(endpoint, payload);
 
     if (res && res.status >= 200 && res.status < 300) {
       toast.success(
         action === 'create_account' 
-          ? "Tạo tài khoản và đăng nhập thành công!" 
-          : "Đổi mật khẩu thành công!"
+          ? "Tạo tài khoản thành công!" 
+          : "Cập nhật mật khẩu thành công!"
       );
-      navigate('/');
+      navigate('/', { replace: true });
     } else {
-      setError(res?.data?.detail || "Internal error.");
+      const errorMsg = res?.data?.detail || "Thực hiện thất bại.";
+      
+      // (401, 408) redirect to home
+      if (res?.status === 401 || res?.status === 408) {
+        toast.error(errorMsg);
+        navigate('/', { replace: true });
+      } else {
+        // validate form error (eg: exists username, email)
+        setError(errorMsg);
+      }
     }
     setLoading(false);
   };
 
-  if (!action || !secret) {
+  if (isCheckingToken) {
     return (
-      <div className="container section">
-        <div className="notification is-danger">
-          <strong>Lỗi:</strong> Đường dẫn xác nhận thiếu thông tin <code>type</code> hoặc <code>secret</code>.
-        </div>
+      <div className="container section has-text-centered py-6">
+        <p className="subtitle">Đang kiểm tra thông tin xác nhận...</p>
       </div>
     );
   }
@@ -111,13 +130,7 @@ export default function DiscordConfirm() {
 
         {action === 'quick_login' ? (
           <div className="has-text-centered py-5">
-            {loading ? (
-              <p className="subtitle">Đang thực hiện đăng nhập nhanh...</p>
-            ) : (
-              <button onClick={handleQuickLogin} className="button is-primary is-fullwidth">
-                Thử đăng nhập lại
-              </button>
-            )}
+            <p className="subtitle">Đang xử lý đăng nhập...</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>

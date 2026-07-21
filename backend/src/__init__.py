@@ -13,7 +13,7 @@ def create_app():
     app = FastAPI(title=os.getenv('APP_NAME'), description=f"{os.getenv('APP_NAME')} backend")
     init_db()
     
-    allow_origins = [os.getenv("ALLOWED_ORIGINS").split()] + ["localhost:5173", "127.0.0.1:5173"]
+    allow_origins = os.getenv("ALLOWED_ORIGINS").split() + ["localhost:5173", "127.0.0.1:5173"]
     print("ALLOWED ORIGINS", allow_origins)
 
     app.add_middleware(

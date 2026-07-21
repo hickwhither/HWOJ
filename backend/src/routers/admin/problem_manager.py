@@ -11,8 +11,15 @@ router = APIRouter(prefix="/admin/problem", tags=["admin.problem_manager"])
 os.makedirs(os.getenv('PROBLEMS_DIR'), exist_ok=True)
 
 # -- MODELS --
-from src import SessionDep, User, Problem
-from src.database_public import ProblemPublic, ProblemCreate
+from src import SessionDep
+from src.models.user import User
+from src.models.problem import Problem
+from src.models_public import ProblemPublic
+
+class ProblemCreate(BaseModel):
+    code: str
+    name: str
+    statement: str
 
 def verify_access(
     request: Request, 
