@@ -1,10 +1,21 @@
 import os
-import shutil, json
 import subprocess
+from pathlib import Path
 from isolate_runner import isolate_run
 from checkers import token
 
-def judge(executable, exec_path, problem, box_id=0):
+
+def _safe_read(path: str) -> str:
+    if os.path.exists(path):
+        with open(path, "r", errors="ignore") as f:
+            return f.read(128)
+    return ""
+
+
+def judge(executable, exec_path, problem, box_id=0, work_dir: str | None = None):
+    work_dir = work_dir or os.path.join("tmp", "judge", f"box{box_id}")
+    Path(work_dir).mkdir(parents=True, exist_ok=True)
+
     time_used = 0
     memory_used = 0
     test_cases_results = []
@@ -12,25 +23,33 @@ def judge(executable, exec_path, problem, box_id=0):
     max_score = 0
 
     answer = os.path.join("cache", problem["code"], "answer")
+    input_path = os.path.join(work_dir, "input")
+    output_path = os.path.join(work_dir, "output")
+    answer_path = os.path.join(work_dir, "answer")
+    error_path = os.path.join(work_dir, "error")
+
     for subname, subtask in problem["subtasks"].items():
         group_passed = True
         max_score += subtask["points"]
         generator = os.path.join("cache", problem["code"], subtask["generator"])
-        validator = os.path.join("cache", problem["code"], subtask["validator"])
         for s in subtask["seeds"]:
-            # Run
-            subprocess.run([generator, str(s)], stdout=open(f".{box_id}/input", "w"))
-            subprocess.run([answer], stdin=open(f".{box_id}/input", "r"), stdout=open("answer", "w"))
+            # Run generator and official solution inside this judge worker's work directory.
+            with open(input_path, "w") as input_file:
+                subprocess.run([generator, str(s)], stdout=input_file)
+            with open(input_path, "r") as input_file, open(answer_path, "w") as answer_file:
+                subprocess.run([answer], stdin=input_file, stdout=answer_file)
+
             res = isolate_run(
-                executable, exec_path, f".{box_id}/input", f".{box_id}/output", f".{box_id}/error",
+                executable, exec_path, input_path, output_path, error_path,
                 problem.get("time_limit", 2000),
                 problem.get("memory_limit", 32768),
-                box_id
+                box_id,
+                work_dir=work_dir,
             )
             res["subtask"] = subname
 
             # Verdict
-            feedback = token.check()
+            feedback = token.check(output_path, answer_path)
             res['verdict'] = 'WA' if feedback else 'AC'
             res['feedback'] = feedback
             if res['verdict'] == 'WA':
@@ -42,15 +61,10 @@ def judge(executable, exec_path, problem, box_id=0):
             memory_used = max(memory_used, res.get('memory_used', 0))
 
             # File read
-            def safe_read(filename):
-                if os.path.exists(f".{box_id}/{filename}"):
-                    with open(f".{box_id}/{filename}", "r", errors='ignore') as f:
-                        return f.read(128)
-                return ""
-            res['input'] = safe_read("input")
-            res['output'] = safe_read("output")
-            res['answer'] = safe_read("answer")
-            res['error'] = safe_read("error")
+            res['input'] = _safe_read(input_path)
+            res['output'] = _safe_read(output_path)
+            res['answer'] = _safe_read(answer_path)
+            res['error'] = _safe_read(error_path)
 
             test_cases_results.append(res)
         
