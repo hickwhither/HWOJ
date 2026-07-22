@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { get_request } from '../Request';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 import { useAuth } from '../context/AuthContext';
 import { HandleDisplay } from '../components/HandleDisplay';
@@ -13,16 +13,13 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 
-const fetchProblem = async (id, contestCode) => {
-  const query = contestCode ? `?contest=${encodeURIComponent(contestCode)}` : '';
-  const res = await get_request(`/problem/${id}${query}`);
+const fetchProblem = async (id) => {
+  const res = await get_request(`/problem/${id}`);
   return res.data;
 };
 
 export default function ProblemDisplay() {
   const { id } = useParams();
-  const [searchParams] = useSearchParams();
-  const contestCode = searchParams.get('contest');
   const {current_user, loginRequired} = useAuth();
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [submissionList, setSubmissionList] = useState({ isOpen: false, mode: 'status' });
@@ -31,15 +28,15 @@ export default function ProblemDisplay() {
 
   // query state
   const { data: p = {}, isLoading, error } = useQuery({
-    queryKey: ['problem', id, contestCode],
-    queryFn: () => fetchProblem(id, contestCode),
+    queryKey: ['problem', id],
+    queryFn: () => fetchProblem(id),
     staleTime: 1000 * 60 * 5,
   });
 
   // loading / error handler
   if (isLoading || error) return (
     <>
-      <h1 className="title">Bài {code}</h1>
+      <h1 className="title">Bài {id}</h1>
       <div className="box">
         {isLoading ? "Loading…" : `Error: ${error.message || "Không thể tải đề bài"}`}
       </div>
@@ -52,9 +49,9 @@ export default function ProblemDisplay() {
       <div className="column is-one-fifth">
         <div className='buttons is-centered'>
           <button onClick={() => loginRequired(() => setIsSubmitModalOpen(true))} className="button is-primary is-fullwidth">Submit</button>
-          <button onClick={() => loginRequired(() => openSubmissionList('status'))} className="button is-info"><i className="fas fa-signal"/></button>
-          <button onClick={() => loginRequired(() => openSubmissionList('my-submissions'))} className="button is-info"><i className="fas fa-user-circle"/></button>
-          <button onClick={() => loginRequired(() => openSubmissionList('leaderboard'))} className="button is-link"><i className="fas fa-crown"/></button>
+          <button onClick={() => openSubmissionList('status')} className="button is-info"><i className="fas fa-signal"/></button>
+          <button onClick={() => openSubmissionList('my-submissions')} className="button is-info"><i className="fas fa-user-circle"/></button>
+          <button onClick={() => openSubmissionList('leaderboard')} className="button is-link"><i className="fas fa-crown"/></button>
           <button className="button is-link"><i className="fas fa-edit"/></button>
         </div>
         
@@ -72,7 +69,6 @@ export default function ProblemDisplay() {
       {/* Right column: Problem title and statement (Markdown+LaTeX is not working lmao) */}
       <div className="column">
         <h1 className="title">{p.name || `Bài ${id}`} <span className="has-text-grey-light">({p.code})</span></h1>
-        {contestCode && <p className="subtitle is-6">Contest: <Link to={`/contest/${contestCode}`}>{contestCode}</Link></p>}
         <hr />
         <ReactMarkdown
           remarkPlugins={[remarkGfm, remarkMath]}
@@ -86,17 +82,15 @@ export default function ProblemDisplay() {
       <SubmitModal 
         isOpen={isSubmitModalOpen}
         onClose={() => setIsSubmitModalOpen(false)}
-        problemCode={code}
+        problemId={id}
         problemName={p.name}
-        contestCode={contestCode}
       />
       <SubmissionList 
         isOpen={submissionList.isOpen}
         onClose={closeSubmissionList}
-        problemCode={code}
+        problemId={id}
         mode={submissionList.mode}
-        username={current_user?.username || ""}
-        contestCode={contestCode}
+        username={current_user.username || ""}
       />
     </div>
   );

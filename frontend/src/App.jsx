@@ -39,8 +39,8 @@ function App() {
           <Route path="/discord" element={<DiscordConfirm />} />
           <Route path="/p" element={<RequireAuth><ProblemList /></RequireAuth>} />
           <Route path="/p/:id" element={<RequireAuth><ProblemDisplay /></RequireAuth>} />
-          <Route path="/contest" element={<RequireAuth><ContestList /></RequireAuth>} />
-          <Route path="/contest/:code" element={<RequireAuth><ContestDisplay /></RequireAuth>} />
+          {/* <Route path="/contest" element={<RequireAuth><ContestList /></RequireAuth>} /> */}
+          {/* <Route path="/contest/:code" element={<RequireAuth><ContestDisplay /></RequireAuth>} /> */}
           <Route path="/about" element={<About />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

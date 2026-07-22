@@ -51,6 +51,7 @@ def create_auth(request: Request, user: User): request.session['id'] = user.id
 
 def delete_auth(request: Request): request.session.pop('auth', None)
 
+
 def verify_auth(request: Request, session: SessionDep) -> User:
     id = request.session.get("id")
     if not id:

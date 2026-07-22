@@ -6,16 +6,18 @@ from pydantic import BaseModel
 from sqlmodel import func, select
 
 from src.database import SessionDep
-from src.models.contest import Contest
-from src.models.links import ContestParticipantLink
+from src.models.contest import *
+from src.models.links import ContestRegistration
 from src.models.user import User, verify_auth
 from src.models.problem import Problem
 from src.models.submission import Submission
 from src.models_public import ContestPublic, ContestView, ProblemPublic, SubmissionPublic
 
+# CONFIGURATIONS
 router = APIRouter(prefix="/contest", tags=["user.contest"], dependencies=[Depends(verify_auth)])
 
 
+# SCHEMAS
 class ContestPageResponse(BaseModel):
     contests: list[ContestPublic]
     total: int
@@ -26,31 +28,7 @@ class ContestRegisterRequest(BaseModel):
     password: Optional[str] = None
 
 
-def get_contest_or_404(session: SessionDep, code: str) -> Contest:
-    contest = session.exec(select(Contest).where(Contest.code == code)).one_or_none()
-    if not contest:
-        raise HTTPException(status_code=404, detail="Contest not found")
-    return contest
-
-
-def ensure_contest_running(contest: Contest) -> None:
-    now = datetime.now()
-    if now < contest.start_time:
-        raise HTTPException(status_code=403, detail="Contest has not started")
-    if now > contest.end_time:
-        raise HTTPException(status_code=403, detail="Contest has ended")
-
-
-def is_contest_participant(session: SessionDep, contest: Contest, user: User) -> bool:
-    return bool(session.get(ContestParticipantLink, (contest.id, user.username)))
-
-
-def ensure_can_view_contest(contest: Contest, user: User, session: SessionDep) -> None:
-    if contest.is_public or is_contest_participant(session, contest, user):
-        return
-    raise HTTPException(status_code=403, detail="You are not registered for this contest")
-
-
+# ROUTERS
 @router.get("", response_model=ContestPageResponse)
 def get_contest_list(
     session: SessionDep,
@@ -99,7 +77,7 @@ def register_contest(
     if contest.password and payload.password != contest.password:
         raise HTTPException(status_code=403, detail="Incorrect contest password")
     if not is_contest_participant(session, contest, current_user):
-        session.add(ContestParticipantLink(contest_id=contest.id, user_username=current_user.username))
+        session.add(ContestRegistration(contest_id=contest.id, user_id=current_user.id))
         session.commit()
     return {"message": "Registered successfully"}
 
@@ -134,16 +112,3 @@ def get_contest_submissions(
         statement = statement.where(Submission.user_id == user.id)
     return session.exec(statement.order_by(Submission.id.desc())).all()
 
-
-@router.get("/{code}/rank", response_model=list[SubmissionPublic])
-def get_contest_rank(session: SessionDep, code: str, current_user: User = Depends(verify_auth)):
-    contest = get_contest_or_404(session, code)
-    ensure_can_view_contest(contest, current_user, session)
-    statement = (
-        select(Submission)
-        .where(Submission.contest_id == contest.id)
-        .where(Submission.status == "D")
-        .order_by(Submission.percentage.desc(), Submission.time_used.asc(), Submission.memory_used.asc())
-        .limit(100)
-    )
-    return session.exec(statement).all()

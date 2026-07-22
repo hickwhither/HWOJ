@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from .submission import Submission
 
 
+# MODELS
 class ProblemBase(SQLModel):
     id: Optional[int] = Field(primary_key=True)
     code: str = Field(unique=True, index=True)
@@ -30,3 +31,16 @@ class Problem(ProblemBase, table=True):
     def __repr__(self):
         return f"Problem({self.code} - {self.name})"
 
+
+# DEPENDENCIES
+from fastapi import HTTPException, Request
+from sqlmodel import select
+from src.database import SessionDep
+
+def get_problem_by_code(session: SessionDep, code: str) -> Problem | None:
+    statement = select(Problem).where(Problem.code == code)
+    results = session.exec(statement)
+    problem = results.one_or_none()
+    if not problem:
+        raise HTTPException(status_code=404, detail=f"Problem {code} not found or deleted")
+    return problem
