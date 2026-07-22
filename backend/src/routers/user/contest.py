@@ -8,9 +8,9 @@ from sqlmodel import func, select
 from src.database import SessionDep
 from src.models.contest import Contest
 from src.models.links import ContestParticipantLink
+from src.models.user import User, verify_auth
 from src.models.problem import Problem
 from src.models.submission import Submission
-from src.models.user import User, verify_auth
 from src.models_public import ContestPublic, ContestView, ProblemPublic, SubmissionPublic
 
 router = APIRouter(prefix="/contest", tags=["user.contest"], dependencies=[Depends(verify_auth)])
@@ -20,11 +20,6 @@ class ContestPageResponse(BaseModel):
     contests: list[ContestPublic]
     total: int
     total_pages: int
-
-
-class SubmissionCreate(BaseModel):
-    language: str
-    source: str
 
 
 class ContestRegisterRequest(BaseModel):
@@ -38,20 +33,22 @@ def get_contest_or_404(session: SessionDep, code: str) -> Contest:
     return contest
 
 
-def ensure_can_view_contest(contest: Contest, user: User, session: SessionDep) -> None:
-    if contest.is_public:
-        return
-    participant = session.get(ContestParticipantLink, (contest.id, user.username))
-    if not participant:
-        raise HTTPException(status_code=403, detail="You are not registered for this contest")
-
-
 def ensure_contest_running(contest: Contest) -> None:
     now = datetime.now()
     if now < contest.start_time:
         raise HTTPException(status_code=403, detail="Contest has not started")
     if now > contest.end_time:
         raise HTTPException(status_code=403, detail="Contest has ended")
+
+
+def is_contest_participant(session: SessionDep, contest: Contest, user: User) -> bool:
+    return bool(session.get(ContestParticipantLink, (contest.id, user.username)))
+
+
+def ensure_can_view_contest(contest: Contest, user: User, session: SessionDep) -> None:
+    if contest.is_public or is_contest_participant(session, contest, user):
+        return
+    raise HTTPException(status_code=403, detail="You are not registered for this contest")
 
 
 @router.get("", response_model=ContestPageResponse)
@@ -101,7 +98,7 @@ def register_contest(
         raise HTTPException(status_code=403, detail="Registration has ended")
     if contest.password and payload.password != contest.password:
         raise HTTPException(status_code=403, detail="Incorrect contest password")
-    if not session.get(ContestParticipantLink, (contest.id, current_user.username)):
+    if not is_contest_participant(session, contest, current_user):
         session.add(ContestParticipantLink(contest_id=contest.id, user_username=current_user.username))
         session.commit()
     return {"message": "Registered successfully"}
@@ -112,40 +109,6 @@ def get_contest_problems(session: SessionDep, code: str, current_user: User = De
     contest = get_contest_or_404(session, code)
     ensure_can_view_contest(contest, current_user, session)
     return sorted(contest.problems, key=lambda problem: problem.code)
-
-
-@router.get("/{code}/problem/{problem_code}", response_model=ProblemPublic)
-def get_contest_problem(session: SessionDep, code: str, problem_code: str, current_user: User = Depends(verify_auth)):
-    contest = get_contest_or_404(session, code)
-    ensure_can_view_contest(contest, current_user, session)
-    problem = next((p for p in contest.problems if p.code == problem_code), None)
-    if not problem:
-        raise HTTPException(status_code=404, detail="Problem not found in contest")
-    return problem
-
-
-@router.post("/{code}/problem/{problem_code}/submit")
-def post_contest_submit(
-    session: SessionDep,
-    code: str,
-    problem_code: str,
-    submit_form: SubmissionCreate,
-    current_user: User = Depends(verify_auth),
-):
-    contest = get_contest_or_404(session, code)
-    ensure_can_view_contest(contest, current_user, session)
-    ensure_contest_running(contest)
-    problem = next((p for p in contest.problems if p.code == problem_code), None)
-    if not problem:
-        raise HTTPException(status_code=404, detail="Problem not found in contest")
-    if submit_form.language not in ["cpp", "py", "text"]:
-        raise HTTPException(status_code=400, detail="Invalid language")
-
-    submission = Submission(user=current_user, problem=problem, contest=contest, **submit_form.model_dump())
-    session.add(submission)
-    session.commit()
-    session.refresh(submission)
-    return submission.id
 
 
 @router.get("/{code}/submissions", response_model=list[SubmissionPublic])

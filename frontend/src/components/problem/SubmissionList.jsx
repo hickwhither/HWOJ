@@ -2,24 +2,25 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { get_request } from '../../Request';
 
-const fetchSubmissions = async ({ problemCode, mode, username }) => {
+const fetchSubmissions = async ({ problemId, mode, username, contestCode }) => {
+  const params = new URLSearchParams();
+  if (contestCode) params.append('contest', contestCode);
   if (mode === 'leaderboard') {
-    const res = await get_request(`/submission/rank/${problemCode}`);
+    const res = await get_request(`/submission/rank/${problemId}${params.toString() ? `?${params.toString()}` : ''}`);
     return res?.data || res || [];
   }
-  const baseUrl = `/submission/problem/${problemCode}`;
-  const url = mode === 'my-submissions' && username 
-    ? `${baseUrl}?username=${encodeURIComponent(username)}` 
-    : baseUrl;
+  const baseUrl = `/submission/problem/${problemId}`;
+  if (mode === 'my-submissions' && username) params.append('username', username);
+  const url = `${baseUrl}${params.toString() ? `?${params.toString()}` : ''}`;
 
   const res = await get_request(url);
   return res?.data || res || [];
 };
 
-export default function SubmissionList({ isOpen, onClose, problemCode, mode, username }) {
+export default function SubmissionList({ isOpen, onClose, problemId, mode, username, contestCode }) {
   const { data: list = [], isLoading } = useQuery({
-    queryKey: ['submissions', { problemCode, mode, username }],
-    queryFn: () => fetchSubmissions({ problemCode, mode, username }),
+    queryKey: ['submissions', { problemId, mode, username, contestCode }],
+    queryFn: () => fetchSubmissions({ problemId, mode, username, contestCode }),
     staleTime: 1000 * 10,
     enabled: isOpen
   });
