@@ -12,12 +12,15 @@ import { AuthProvider } from './context/AuthContext'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import LoginModal from './components/auth/LoginModal'
+import RequireAuth from './components/auth/RequireAuth'
 
 // Pages
 import Home from './pages/Home'
 import DiscordConfirm from './pages/DiscordConfirm'
 import ProblemList from './pages/ProblemList'
 import ProblemDisplay from './pages/ProblemDisplay'
+import ContestList from './pages/ContestList'
+import ContestDisplay from './pages/ContestDisplay'
 import About from './pages/About'
 import NotFound from './pages/NotFound'
 
@@ -34,8 +37,10 @@ function App() {
         <Routes>
           <Route path="" element={<Home app={APP_NAME} />} />
           <Route path="/discord" element={<DiscordConfirm />} />
-          <Route path="/p" element={<ProblemList />} />
-          <Route path="/p/:id" element={<ProblemDisplay />} />
+          <Route path="/p" element={<RequireAuth><ProblemList /></RequireAuth>} />
+          <Route path="/p/:id" element={<RequireAuth><ProblemDisplay /></RequireAuth>} />
+          <Route path="/contest" element={<RequireAuth><ContestList /></RequireAuth>} />
+          <Route path="/contest/:code" element={<RequireAuth><ContestDisplay /></RequireAuth>} />
           <Route path="/about" element={<About />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { post_request } from '../../Request';
 import { toast } from 'react-toastify';
 
-export default function SubmitModal({ isOpen, onClose, problemId, problemName }) {
+export default function SubmitModal({ isOpen, onClose, problemId, problemName, contestCode }) {
   const [language, setLanguage] = useState('cpp');
   const [source, setSource] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -13,7 +13,10 @@ export default function SubmitModal({ isOpen, onClose, problemId, problemName })
 
     setSubmitting(true);
     try {
-      const res = await post_request(`/problem/${problemId}/submit`, { language, source });
+      const submitPath = contestCode
+        ? `/problem/${problemId}/submit?contest=${encodeURIComponent(contestCode)}`
+        : `/problem/${problemId}/submit`;
+      const res = await post_request(submitPath, { language, source });
       
       if (res.status === 200) {
         toast.success("Nộp bài thành công!");
