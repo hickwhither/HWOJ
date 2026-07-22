@@ -4,14 +4,13 @@ from pydantic import BaseModel
 from typing import Optional
 
 from src.database import SessionDep
-from src.models.user import User
+from src.models.user import User, verify_auth
 from src.models.problem import Problem
 from src.models import Submission
 from src.models_public import ProblemView, ProblemPublic, SubmissionView, SubmissionPublic
-from .dependencies import verify_auth
 
 # CONFIGURATIONS
-router = APIRouter(prefix="/submission", tags=["submission"], dependencies=[Depends(verify_auth)])
+router = APIRouter(prefix="/submission", tags=["user.submission"], dependencies=[Depends(verify_auth)])
 
 @router.get('/{id}', response_model=SubmissionPublic)
 def get_submission(session: SessionDep, id: int):

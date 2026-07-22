@@ -13,13 +13,13 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 
-const fetchProblem = async (id) => {
-  const res = await get_request(`/problem/${id}`);
+const fetchProblem = async (code) => {
+  const res = await get_request(`/problem/${code}`);
   return res.data;
 };
 
 export default function ProblemDisplay() {
-  const { id } = useParams();
+  const { code } = useParams();
   const {current_user, loginRequired} = useAuth();
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [submissionList, setSubmissionList] = useState({ isOpen: false, mode: 'status' });
@@ -28,15 +28,15 @@ export default function ProblemDisplay() {
 
   // query state
   const { data: p = {}, isLoading, error } = useQuery({
-    queryKey: ['problem', id],
-    queryFn: () => fetchProblem(id),
+    queryKey: ['problem', code],
+    queryFn: () => fetchProblem(code),
     staleTime: 1000 * 60 * 5,
   });
 
   // loading / error handler
   if (isLoading || error) return (
     <>
-      <h1 className="title">Bài {id}</h1>
+      <h1 className="title">Bài {code}</h1>
       <div className="box">
         {isLoading ? "Loading…" : `Error: ${error.message || "Không thể tải đề bài"}`}
       </div>
@@ -68,7 +68,7 @@ export default function ProblemDisplay() {
       
       {/* Right column: Problem title and statement (Markdown+LaTeX is not working lmao) */}
       <div className="column">
-        <h1 className="title">{p.name || `Bài ${id}`} <span className="has-text-grey-light">({p.code})</span></h1>
+        <h1 className="title">{p.name || `Bài ${code}`} <span className="has-text-grey-light">({p.code})</span></h1>
         <hr />
         <ReactMarkdown
           remarkPlugins={[remarkGfm, remarkMath]}
@@ -82,13 +82,13 @@ export default function ProblemDisplay() {
       <SubmitModal 
         isOpen={isSubmitModalOpen}
         onClose={() => setIsSubmitModalOpen(false)}
-        problemId={id}
+        problemCode={code}
         problemName={p.name}
       />
       <SubmissionList 
         isOpen={submissionList.isOpen}
         onClose={closeSubmissionList}
-        problemId={id}
+        problemCode={code}
         mode={submissionList.mode}
         username={current_user?.username || ""}
       />

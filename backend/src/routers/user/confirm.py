@@ -6,14 +6,14 @@ from pwdlib import PasswordHash
 from sqlmodel import select
 
 from src.database import SessionDep
-from src.models.user import User
+from src.models.user import User, create_auth
 
 # CONFIGURATION
 pwd = PasswordHash.recommended()
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 
-router = APIRouter(prefix="/confirm", tags=["confirm"])
+router = APIRouter(prefix="/confirm", tags=["user.confirm"])
 
 
 # SCHEMAS
@@ -84,20 +84,17 @@ def confirm_create_account(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Email is already in use")
     if session.exec(select(User).where(User.discord_id == discord_id)).first():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Discord ID is already registered")
-
     new_user = User(
         username=data.username,
         email=data.email,
         password=pwd.hash(data.password),
         discord_id=discord_id
     )
-    
     session.add(new_user)
     session.commit()
     session.refresh(new_user)
 
-    request.session["auth"] = {"username": new_user.username}
-    return {"message": "Account created successfully", "username": new_user.username}
+    create_auth(request, new_user)
 
 
 @router.post("/reset-password")
@@ -108,7 +105,6 @@ def confirm_reset_password(
 ):
     """Resets the password for an existing account linked to the verified Discord ID."""
     discord_id = decode_discord_token(data.secret)
-
     user = session.exec(select(User).where(User.discord_id == discord_id)).first()
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No account associated with this Discord ID")
@@ -116,9 +112,8 @@ def confirm_reset_password(
     user.password = pwd.hash(data.password)
     session.add(user)
     session.commit()
-
-    request.session["auth"] = {"username": user.username}
-    return {"message": "Password updated successfully"}
+    
+    create_auth(request, user)
 
 
 @router.post("/quick-login")
@@ -129,11 +124,9 @@ def confirm_quick_login(
 ):
     """Logs in the user directly using a valid Discord confirmation token."""
     discord_id = decode_discord_token(data.secret)
-
     user = session.exec(select(User).where(User.discord_id == discord_id)).first()
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No account associated with this Discord ID")
-
-    request.session["auth"] = {"username": user.username}
-    return {"message": "Login successful", "username": user.username}
+    
+    create_auth(request, user)
 

@@ -1,5 +1,5 @@
 import { toast } from "react-toastify";
-const BASE_URL = "/api";
+const BASE_URL = "http://127.0.0.1:8000/api";
 
 export async function request(path, options = {}) {
   const config = {

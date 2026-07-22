@@ -10,11 +10,10 @@ from src.models.contest import Contest
 from src.models.links import ContestParticipantLink
 from src.models.problem import Problem
 from src.models.submission import Submission
-from src.models.user import User
+from src.models.user import User, verify_auth
 from src.models_public import ContestPublic, ContestView, ProblemPublic, SubmissionPublic
-from .dependencies import verify_auth
 
-router = APIRouter(prefix="/contest", tags=["contest"], dependencies=[Depends(verify_auth)])
+router = APIRouter(prefix="/contest", tags=["user.contest"], dependencies=[Depends(verify_auth)])
 
 
 class ContestPageResponse(BaseModel):
