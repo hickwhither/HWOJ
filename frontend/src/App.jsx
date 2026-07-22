@@ -38,7 +38,6 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/p" element={<RequireAuth><ProblemList /></RequireAuth>} />
           <Route path="/p/:code" element={<RequireAuth><ProblemDisplay /></RequireAuth>} />
-          <Route path="/p/:code/:contest" element={<RequireAuth><ProblemDisplay /></RequireAuth>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </section>
