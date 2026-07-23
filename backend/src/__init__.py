@@ -38,6 +38,9 @@ def create_app():
     async def favicon():
         return FileResponse("./sigma.jpg")
 
+    from .admin import admin_app
+    app.mount("/admin", admin_app)
+
     from .routers.user import router as api_router
     from .routers.webhook import router as judger_router
     app.include_router(api_router)
