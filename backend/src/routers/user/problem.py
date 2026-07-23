@@ -3,18 +3,28 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlmodel import func, select
+from sqlmodel import select
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlmodel import paginate
 
 from src.database import SessionDep
+
 from src.models.contest import Contest
-from src.models.links import ContestRegistration, ContestTask
-from src.models.user import User, verify_auth
-from src.models.problem import Problem, get_problem_or_404
+from src.dependencies.contest import get_contest_or_404, ensure_contest_running, ensure_can_view_contest
+
+from src.models.user import User
+from src.dependencies.user import verify_auth, get_user_or_404
+
+from src.models.problem import Problem
+from src.dependencies.problem import get_problem_or_404
+
 from src.models.submission import Submission
-from src.models_public import ProblemView, ProblemPublic
+
+from src.public import *
+
 
 # CONFIGURATION
-router = APIRouter(prefix="/problem", tags=["user.problem"], dependencies=[Depends(verify_auth)])
+router = APIRouter(tags=["user.problem"], dependencies=[Depends(verify_auth)])
 
 
 # SCHEMAS
@@ -23,60 +33,43 @@ class SubmissionCreate(BaseModel):
     source: str
 
 
-class ProblemPageResponse(BaseModel):
-    problems: list[ProblemPublic]
-    total: int
-    total_pages: int
-
-
-
 # ROUTERS
-@router.get("", response_model=ProblemPageResponse)
-def get_problem_list(
-    session: SessionDep,
-    page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100),
-    code: Optional[str] = Query(None),
-    name: Optional[str] = Query(None),
-):
-    query = select(Problem).where(Problem.is_public == True)
-    if code:
-        query = query.where(Problem.code.icontains(code))
-    if name:
-        query = query.where(Problem.name.icontains(name))
-
-    count_query = select(func.count()).select_from(query.subquery())
-    total = session.exec(count_query).one()
-    total_pages = max(1, (total + limit - 1) // limit)
-    query = query.offset((page - 1) * limit).limit(limit)
-    problems = session.exec(query).all()
-
-    return {
-        "problems": problems,
-        "total": total,
-        "total_pages": total_pages
-    }
+@router.get("/problem", response_model=Page[ProblemPublic])
+def get_list_problem(session: SessionDep):
+    return paginate(session, select(Problem).where(Problem.is_public == True))
 
 
-@router.get("/{code}", response_model=ProblemView)
+@router.get("/problem/{code}", response_model=ProblemView)
 def get_problem(
     session: SessionDep,
-    code: str
+    problem_code: str,
+    contest_code: str | None = None,
+    current_user: User = Depends(verify_auth)
 ):
-    problem = get_problem_or_404(session, code)
-    return problem
+    problem = get_problem_or_404(session, problem_code)
+    if not problem: raise HTTPException(404)
+    if contest_code:
+        contest = get_contest_or_404(session, contest_code)
+        ensure_contest_running(contest)
+        ensure_can_view_contest(contest, current_user, session)
+        return problem
+    else:
+        if not problem.is_public:
+            raise HTTPException(403, "problem.forbidden")
+        return problem
 
 
-@router.post("/{code}/submit")
-def post_submit(
+@router.post("/problem/{code}/submit")
+def submit_code(
     session: SessionDep,
-    code: str,
     submit_form: SubmissionCreate,
-    current_user: User = Depends(verify_auth),
+    problem_code: str,
+    contest_code: str | None = None,
+    current_user: User = Depends(verify_auth)
 ):
-    problem = get_problem_or_404(session, code)
+    problem = get_problem(session, problem_code, contest_code)
     if submit_form.language not in ["cpp", "py", "text"]:
-        raise HTTPException(status_code=400, detail="Invalid language")
+        raise HTTPException(400, detail="problem.invalid_language")
     
     submit_data = submit_form.model_dump()
     new_submission = Submission(user=current_user, problem=problem, **submit_data)
@@ -84,3 +77,41 @@ def post_submit(
     session.commit()
     session.refresh(new_submission)
     return new_submission.id
+
+
+@router.get('/submission', response_model=Page[SubmissionPublic])
+def get_list_submission(
+    session: SessionDep,
+    is_best: bool = False,
+    contest_code: str | None = None,
+    problem_code: str | None = None,
+    username: str | None = None,
+):
+    query = select(Submission)
+    if contest_code:
+        contest = get_contest_or_404(session, contest_code)
+        query = query.where(Submission.contest_id == contest.id)
+    if problem_code:
+        problem = get_problem_or_404(session, problem_code)
+        query = query.where(Submission.problem_id == problem.id)
+    if username:
+        user = get_user_or_404(session, username)
+        query = query.where(Submission.user_id == user.id)
+    if is_best:
+        query = query.order_by(
+            Submission.percentage.desc(),
+            Submission.time_used.asc(),
+            Submission.memory_used.asc(),
+            Submission.id.desc()
+        )
+    else:
+        query = query.order_by(Submission.id.desc())
+    return paginate(session, query)
+
+
+@router.get('/submission/{id}', response_model=SubmissionView)
+def get_submission(session: SessionDep, id: int):
+    submission = session.get(Submission, id)
+    if not submission: raise HTTPException(404)
+    return submission
+

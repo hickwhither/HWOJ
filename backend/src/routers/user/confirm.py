@@ -1,12 +1,14 @@
 import os
 import jwt
-from fastapi import APIRouter, Request, HTTPException, status
+from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel, EmailStr
 from pwdlib import PasswordHash
 from sqlmodel import select
 
 from src.database import SessionDep
-from src.models.user import User, create_auth
+
+from src.models.user import User
+from src.dependencies.user import create_auth
 
 # CONFIGURATION
 pwd = PasswordHash.recommended()
@@ -38,26 +40,22 @@ class PasswordForm(BaseModel):
 
 # FUNCTIONS
 def decode_discord_token(secret: str) -> str:
-    """Decodes the JWT token and extracts the discord_id."""
+    """
+    Decodes the JWT token and extracts the discord_id.
+    - confirm.missing: Token payload is missing discord_id
+    - confirm.expired: Token has expired
+    - confirm.invalid: Invalid token
+    """
     try:
         payload = jwt.decode(secret, SECRET_KEY, algorithms=[ALGORITHM])
         discord_id = payload.get("discord_id")
         if not discord_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Token payload is missing discord_id"
-            )
+            raise HTTPException(400, "confirm.missing")
         return discord_id
     except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_408_REQUEST_TIMEOUT,
-            detail="Token has expired"
-        )
+        raise HTTPException(400, "confirm.expired")
     except jwt.InvalidTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
-        )
+        raise HTTPException(401, "confirm.invalid_token")
 
 
 # ROUTERS
@@ -74,16 +72,15 @@ def confirm_create_account(
     data: ConfirmCreateAccountRequest,
     session: SessionDep
 ):
-    """Creates a new user account linked with a Discord ID."""
     discord_id = decode_discord_token(data.secret)
 
     # Check for existing records
     if session.get(User, data.username):
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Username already exists")
+        raise HTTPException(400, "confirm.exist_username")
     if session.exec(select(User).where(User.email == data.email)).first():
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Email is already in use")
+        raise HTTPException(400, "confirm.exist_email")
     if session.exec(select(User).where(User.discord_id == discord_id)).first():
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Discord ID is already registered")
+        raise HTTPException(400, "confirm.exist_discord_id")
     new_user = User(
         username=data.username,
         email=data.email,
@@ -103,11 +100,10 @@ def confirm_reset_password(
     data: ConfirmChangePasswordRequest,
     session: SessionDep
 ):
-    """Resets the password for an existing account linked to the verified Discord ID."""
     discord_id = decode_discord_token(data.secret)
     user = session.exec(select(User).where(User.discord_id == discord_id)).first()
     if not user:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No account associated with this Discord ID")
+        raise HTTPException(400, "confirm.invalid_discord_id")
 
     user.password = pwd.hash(data.password)
     session.add(user)
@@ -122,11 +118,10 @@ def confirm_quick_login(
     data: BaseConfirmRequest,
     session: SessionDep
 ):
-    """Logs in the user directly using a valid Discord confirmation token."""
     discord_id = decode_discord_token(data.secret)
     user = session.exec(select(User).where(User.discord_id == discord_id)).first()
     if not user:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No account associated with this Discord ID")
+        raise HTTPException(404, "confirm.invalid_discord_id")
     
     create_auth(request, user)
 

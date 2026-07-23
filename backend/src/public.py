@@ -8,6 +8,8 @@ class UserPublic(BaseModel):
     username: str
     nickname: str | None
     avatar_url: str | None
+    rating: int | None
+    elo: int | None
     rank: str | None
     badges: list[str]
 
@@ -64,8 +66,8 @@ class SubmissionPublic(BaseModel):
     # Cell 3
     time_used: float | None
     memory_used: float | None
+    test_cases: list[dict[str, Any]] | None
 
 
 class SubmissionView(SubmissionPublic):
-    test_cases: list[dict[str, Any]] | None
     source: str

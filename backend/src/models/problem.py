@@ -6,7 +6,6 @@ if TYPE_CHECKING:
     from .submission import Submission
 
 
-# MODELS
 class ProblemBase(SQLModel):
     id: Optional[int] = Field(primary_key=True)
     code: str = Field(unique=True, index=True)
@@ -19,8 +18,8 @@ class ProblemBase(SQLModel):
     memory_limit: int = Field(default=32768)
     input: Optional[str] = Field()
     output: Optional[str] = Field()
-    programs: Optional[dict[str, str]] = Field(default={}, sa_column=Column(JSON))
-    subtasks: Optional[dict[str, dict[str, Any]]] = Field(default={}, sa_column=Column(JSON))
+    programs: Optional[dict[str, str]] = Field(default_factory=dict, sa_column=Column(JSON))
+    subtasks: Optional[dict[str, dict[str, Any]]] = Field(default_factory=dict, sa_column=Column(JSON))
     
 
 
@@ -30,17 +29,3 @@ class Problem(ProblemBase, table=True):
 
     def __repr__(self):
         return f"Problem({self.code} - {self.name})"
-
-
-# DEPENDENCIES
-from fastapi import HTTPException, Request
-from sqlmodel import select
-from src.database import SessionDep
-
-def get_problem_by_code(session: SessionDep, code: str) -> Problem | None:
-    statement = select(Problem).where(Problem.code == code)
-    results = session.exec(statement)
-    problem = results.one_or_none()
-    if not problem:
-        raise HTTPException(status_code=404, detail=f"Problem {code} not found or deleted")
-    return problem
