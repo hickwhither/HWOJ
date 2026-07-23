@@ -3,9 +3,8 @@ import sys
 
 from sqlmodel import Session, select
 
-from .database import engine, init_db
-from .models import User
-
+from src.database import engine, init_db
+from src.models import User
 
 def set_superuser(username: str) -> bool:
     init_db()
