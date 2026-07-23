@@ -7,3 +7,6 @@ fastapi[standard]
 sqlmodel
 pymysql
 pwdlib[argon2]
+fastadmin[fastapi,sqlalchemy]
+aiosqlite
+asyncmy
