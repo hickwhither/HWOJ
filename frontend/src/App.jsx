@@ -37,11 +37,15 @@ function App() {
         <Routes>
           <Route path="" element={<Home app={APP_NAME} />} />
           <Route path="/discord" element={<DiscordConfirm />} />
-          <Route path="/p" element={<RequireAuth><ProblemList /></RequireAuth>} />
-          <Route path="/p/:id" element={<RequireAuth><ProblemDisplay /></RequireAuth>} />
-          {/* <Route path="/contest" element={<RequireAuth><ContestList /></RequireAuth>} /> */}
-          {/* <Route path="/contest/:code" element={<RequireAuth><ContestDisplay /></RequireAuth>} /> */}
           <Route path="/about" element={<About />} />
+
+          <Route path="/problems" element={<RequireAuth><ProblemList /></RequireAuth>} />
+          <Route path="/p/:problem_code" element={<RequireAuth><ProblemDisplay /></RequireAuth>} />
+          <Route path="/c/:contest_code/p/:probolem_code" element={<RequireAuth><ProblemDisplay /></RequireAuth>} />
+          <Route path="/contests" element={<RequireAuth><ContestList /></RequireAuth>} />
+          <Route path="/c/:contest_code" element={<RequireAuth><ContestDisplay /></RequireAuth>} />
+          
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </section>

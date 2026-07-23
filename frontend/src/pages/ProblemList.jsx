@@ -9,8 +9,8 @@ const fetchProblems = async ({ page, filter }) => {
   if (filter.name) params.append("name", filter.name);
   if (filter.authors) params.append("authors", filter.authors);
   
-  const res = await get_request(`/problem?${params.toString()}`);
-  return res?.data || { problems: [], total_pages: 1 };
+  const res = await get_request(`/problems?${params.toString()}`);
+  return res?.data || { items: [], pages: 1, total: 0, page: 1, size: 10 };
 };
 
 export default function ProblemList() {
@@ -18,7 +18,7 @@ export default function ProblemList() {
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState({ code: '', name: '', authors: '' });
 
-  // query state
+  // Query state từ React Query
   const { data, isLoading, isPlaceholderData } = useQuery({
     queryKey: ['problems', { page, filter }],
     queryFn: () => fetchProblems({ page, filter }),
@@ -26,17 +26,17 @@ export default function ProblemList() {
     placeholderData: (prev) => prev,
   });
   
-  // clean data
-  const problems = data?.problems || [];
-  const totalPages = data?.total_pages || 1;
+  // Trích xuất danh sách bài tập (items) và tổng số trang (pages) từ JSON API mới
+  const problems = data?.items || [];
+  const totalPages = data?.pages || 1;
 
   const onFilterChange = (e) => {
     const { name, value } = e.target;
     setFilter(prev => ({ ...prev, [name]: value }));
-    setPage(1);
+    setPage(1); // Reset về trang 1 khi lọc
   };
 
-  // Tính toán các số trang hiển thị (Thuật toán giữ nguyên)
+  // Tính toán các nút phân trang hiển thị
   const pagesToShow = useMemo(() => {
     const startCount = 2, endCount = 2, middleCount = 6;
     if (totalPages <= startCount + middleCount + endCount) {
@@ -75,14 +75,14 @@ export default function ProblemList() {
           <button 
             className="pagination-previous"
             onClick={(e) => { e.preventDefault(); setPage(p => Math.max(1, p - 1)); }}
-            disabled={page === 1}
+            disabled={page <= 1}
           >
             Previous
           </button>
           <button 
             className="pagination-next"
             onClick={(e) => { e.preventDefault(); setPage(p => Math.min(totalPages, p + 1)); }}
-            disabled={page === totalPages}
+            disabled={page >= totalPages}
           >
             Next
           </button>
@@ -133,7 +133,9 @@ export default function ProblemList() {
                   <td>{p.code}</td>
                   <td>{p.name}</td>
                   <td>
-                    {p.authors?.map(a => a.username || a.name).join(', ')}
+                    {Array.isArray(p.authors) 
+                      ? p.authors.map(a => (typeof a === 'string' ? a : a.username || a.name)).join(', ')
+                      : (p.authors || '')}
                   </td>
                 </tr>
               ))

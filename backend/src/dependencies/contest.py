@@ -14,6 +14,15 @@ def get_contest_or_404(session: SessionDep, code: str) -> Contest:
     return contest
 
 
+def is_contest_running(contest: Contest) -> None:
+    now = datetime.now()
+    if now < contest.start_time:
+        raise HTTPException(403, "contest.upcoming")
+    if now > contest.end_time:
+        raise HTTPException(403, "contest.ended")
+
+
+
 def ensure_contest_running(contest: Contest) -> None:
     now = datetime.now()
     if now < contest.start_time:

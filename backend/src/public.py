@@ -36,15 +36,14 @@ class ProblemView(ProblemPublic):
 class ContestPublic(BaseModel):
     code: str
     title: str | None
-    description: str | None
     registration_start: datetime | None
     registration_end: datetime | None
     start_time: datetime
     end_time: datetime
-    is_public: bool
 
 
 class ContestView(ContestPublic):
+    description: str | None
     problems: list[ProblemPublic] = []
 
 

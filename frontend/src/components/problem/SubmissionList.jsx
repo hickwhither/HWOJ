@@ -1,34 +1,62 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { get_request } from '../../Request';
 
-const fetchSubmissions = async ({ problemId, mode, username, contestCode }) => {
-  const params = new URLSearchParams();
-  if (contestCode) params.append('contest', contestCode);
-  if (mode === 'leaderboard') {
-    const res = await get_request(`/submission/rank/${problemId}${params.toString() ? `?${params.toString()}` : ''}`);
-    return res?.data || res || [];
-  }
-  const baseUrl = `/submission/problem/${problemId}`;
-  if (mode === 'my-submissions' && username) params.append('username', username);
-  const url = `${baseUrl}${params.toString() ? `?${params.toString()}` : ''}`;
-
-  const res = await get_request(url);
-  return res?.data || res || [];
+const getStatusTagClass = (percentage, status) => {
+  if (percentage === 100 || status === 'AC') return 'is-success';
+  if (percentage > 0) return 'is-warning';
+  return 'is-danger';
 };
 
-export default function SubmissionList({ isOpen, onClose, problemId, mode, username, contestCode }) {
-  const { data: list = [], isLoading } = useQuery({
-    queryKey: ['submissions', { problemId, mode, username, contestCode }],
-    queryFn: () => fetchSubmissions({ problemId, mode, username, contestCode }),
+const fetchSubmissions = async ({ problem_code, mode, username, contest_code, page }) => {
+  const params = new URLSearchParams({ page });
+  
+  if (problem_code) params.append('problem_code', problem_code);
+  if (contest_code) params.append('contest_code', contest_code);
+
+  if (mode === 'leaderboard') {
+    params.append('is_best', 'true');
+  } else if (mode === 'my-submissions' && username) {
+    params.append('username', username);
+  }
+
+  const res = await get_request(`/submissions?${params.toString()}`);
+  const responseData = res?.data || res;
+
+  // fastapi-pagination trả về { items: [...], pages: X, total: Y, page: Z, size: S }
+  return {
+    items: responseData?.items || (Array.isArray(responseData) ? responseData : []),
+    pages: responseData?.pages || 1,
+    size: responseData?.size || 50,
+    total: responseData?.total || 0,
+  };
+};
+
+export default function SubmissionList({ isOpen, onClose, problem_code, mode, username, contest_code }) {
+  const [page, setPage] = useState(1);
+
+  // Reset về trang 1 khi thay đổi mode, problem_code, contest_code hoặc khi modal mở lại
+  useEffect(() => {
+    if (isOpen) {
+      setPage(1);
+    }
+  }, [isOpen, mode, problem_code, contest_code]);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['submissions', { problem_code, mode, username, contest_code, page }],
+    queryFn: () => fetchSubmissions({ problem_code, mode, username, contest_code, page }),
     staleTime: 1000 * 10,
-    enabled: isOpen
+    enabled: isOpen && !!problem_code,
+    placeholderData: (prev) => prev,
   });
+
+  const list = data?.items || [];
+  const totalPages = data?.pages || 1;
+  const pageSize = data?.size || 50;
 
   const isRank = mode === 'leaderboard';
   const isMySubmissions = mode === 'my-submissions';
 
-  // Định nghĩa tiêu đề tương ứng với từng chế độ
   const getTitle = () => {
     if (isRank) return '🏆 Leaderboard';
     if (isMySubmissions) return '👤 Bài nộp của tôi';
@@ -38,47 +66,101 @@ export default function SubmissionList({ isOpen, onClose, problemId, mode, usern
   return (
     <div className={`modal ${isOpen ? "is-active" : ""}`}>
       <div className="modal-background" onClick={onClose}></div>
-      <div className="modal-content" style={{ width: '80%', maxWidth: '900px' }}>
+      <div className="modal-content" style={{ width: '85%', maxWidth: '1000px' }}>
         <div className="box">
-          <h2 className="title is-4">{getTitle()}</h2>
+          <div className="is-flex is-justify-content-space-between is-align-items-center mb-4">
+            <h2 className="title is-4 mb-0">{getTitle()}</h2>
+            {data?.total > 0 && (
+              <span className="tag is-info is-light">Tổng cộng: {data.total} bài nộp</span>
+            )}
+          </div>
 
           {isLoading ? (
             <div className="has-text-centered py-5">Loading dữ liệu...</div>
           ) : list.length === 0 ? (
             <div className="has-text-centered has-text-grey py-5">Chưa có bài nộp nào.</div>
           ) : (
-            <div className="table-container">
-              <table className="table is-fullwidth is-striped is-hoverable">
-                <thead>
-                  <tr>
-                    {isRank && <th width="8%">Hạng</th>}
-                    <th>ID</th>
-                    <th>Người nộp</th>
-                    <th>Ngôn ngữ</th>
-                    <th>Kết quả</th>
-                    <th>Thời gian</th>
-                    <th>Bộ nhớ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {list.map((sub, index) => (
-                    <tr key={sub.id}>
-                      {isRank && <td><strong>{index + 1}</strong></td>}
-                      <td>#{sub.id}</td>
-                      <td>{sub.user?.username}</td>
-                      <td><span className="tag is-light">{sub.language}</span></td>
-                      <td>
-                        <span className={`tag is-bold`}>
-                          {sub.percentage}% ({sub.status})
-                        </span>
-                      </td>
-                      <td>{sub.time_used} ms</td>
-                      <td>{(sub.memory_used / 1024).toFixed(2)} MB</td>
+            <>
+              <div className="table-container">
+                <table className="table is-fullwidth is-striped is-hoverable">
+                  <thead>
+                    <tr>
+                      {isRank && <th width="8%">Hạng</th>}
+                      <th>ID</th>
+                      <th>Người nộp</th>
+                      <th>Ngôn ngữ</th>
+                      <th>Điểm / Kết quả</th>
+                      <th>Thời gian</th>
+                      <th>Bộ nhớ</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {list.map((sub, index) => (
+                      <tr key={sub.id}>
+                        {isRank && (
+                          <td>
+                            <strong>{(page - 1) * pageSize + index + 1}</strong>
+                          </td>
+                        )}
+                        <td>#{sub.id}</td>
+                        <td>{sub.user?.username || sub.username || 'N/A'}</td>
+                        <td><span className="tag is-white">{sub.language}</span></td>
+                        <td>
+                          <span className={`tag is-bold ${getStatusTagClass(sub.percentage, sub.status)}`}>
+                            {sub.percentage ?? 0}% {sub.status ? `(${sub.status})` : ''}
+                          </span>
+                        </td>
+                        <td>{sub.time_used ?? 0} ms</td>
+                        <td>{sub.memory_used ? (sub.memory_used / 1024).toFixed(2) : 0} MB</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <nav className="pagination is-centered is-small mt-4" role="navigation" aria-label="pagination">
+                  <button 
+                    className="pagination-previous"
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                  >
+                    Previous
+                  </button>
+                  <button 
+                    className="pagination-next"
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                  >
+                    Next
+                  </button>
+
+                  <ul className="pagination-list">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                      .map((p, i, arr) => {
+                        const prev = arr[i - 1];
+                        return (
+                          <React.Fragment key={p}>
+                            {prev && p - prev > 1 && (
+                              <li><span className="pagination-ellipsis">&hellip;</span></li>
+                            )}
+                            <li>
+                              <button
+                                className={`pagination-link ${page === p ? 'is-current' : ''}`}
+                                onClick={() => setPage(p)}
+                              >
+                                {p}
+                              </button>
+                            </li>
+                          </React.Fragment>
+                        );
+                      })}
+                  </ul>
+                </nav>
+              )}
+            </>
           )}
         </div>
       </div>

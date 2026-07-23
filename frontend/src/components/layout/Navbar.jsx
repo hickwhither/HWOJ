@@ -28,8 +28,8 @@ export default function Navbar() {
         </div>
         <div className="navbar-end">
           <NavLink className="navbar-item" to="">Home</NavLink>
-          <NavLink className="navbar-item" to="/p">Problems</NavLink>
-          {/* <NavLink className="navbar-item" to="/contest">Contests</NavLink> */}
+          <NavLink className="navbar-item" to="/problems">Problems</NavLink>
+          <NavLink className="navbar-item" to="/contests">Contests</NavLink>
           <NavLink className="navbar-item" to="/about">About</NavLink>
         </div>
         <div className="navbar-end">

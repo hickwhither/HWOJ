@@ -9,5 +9,5 @@ def get_problem_or_404(session: SessionDep, code: str) -> Problem | None:
     results = session.exec(statement)
     problem = results.one_or_none()
     if not problem:
-        raise HTTPException(404, "contest.notfound")
+        raise HTTPException(404, "problem.notfound")
     return problem

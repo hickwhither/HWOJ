@@ -35,13 +35,17 @@ class ContestRegisterRequest(BaseModel):
 # ROUTERS
 @router.get("", response_model=Page[ContestPublic])
 def get_list_contest(session: SessionDep):
-    return paginate(session, select(Contest).where(Contest.is_public == True))
+    return paginate(session, select(Contest))
 
 
 @router.get("/{code}", response_model=ContestView)
 def get_contest(session: SessionDep, code: str, current_user: User = Depends(verify_auth)):
     contest = get_contest_or_404(session, code)
     ensure_can_view_contest(contest, current_user, session)
+    if not is_contest_running(contest):
+        contest_data = ContestView.model_validate(contest)
+        contest_data.problems = None
+        return contest_data
     return contest
 
 

@@ -14,6 +14,8 @@ def verify_auth(request: Request, session: SessionDep) -> User:
     if not id:
         raise HTTPException(401, "user.not_authenticated")
     user = session.get(User, id)
+    if not user:
+        raise HTTPException(401, "user.not_authenticated")
     return user
 
 

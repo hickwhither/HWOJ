@@ -29,7 +29,7 @@ class PasswordForm(BaseModel):
 
 
 # ROUTERS
-@router.post("/signup", response_model=UserView)
+@router.post("/signup", response_model=UserView, status_code=201)
 def signup(request: Request, new_user: CreateAccount, session: SessionDep):
     if session.get(User, new_user.username):
         raise HTTPException(400, "auth.exist_username")

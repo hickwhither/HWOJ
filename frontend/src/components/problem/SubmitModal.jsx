@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { post_request } from '../../Request';
 import { toast } from 'react-toastify';
 
-export default function SubmitModal({ isOpen, onClose, problemId, problemName, contestCode }) {
+export default function SubmitModal({ isOpen, onClose, problem_code, problemName, contestCode }) {
   const [language, setLanguage] = useState('cpp');
   const [source, setSource] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -13,20 +13,21 @@ export default function SubmitModal({ isOpen, onClose, problemId, problemName, c
 
     setSubmitting(true);
     try {
-      const submitPath = contestCode
-        ? `/problem/${problemId}/submit?contest=${encodeURIComponent(contestCode)}`
-        : `/problem/${problemId}/submit`;
-      const res = await post_request(submitPath, { language, source });
+      const params = new URLSearchParams();
+      if (problem_code) params.append('problem_code', problem_code);
+      if (contestCode) params.append('contest_code', contestCode);
+
+      const res = await post_request(`/submit_code?${params.toString()}`, { language, source });
       
-      if (res.status === 200) {
-        toast.success("Nộp bài thành công!");
+      if (res.status === 201 || res.status === 200) {
+        toast.success("Submit code success!");
         setSource('');
         onClose();
       } else {
         toast.error(res.data?.detail || "Có lỗi xảy ra khi nộp bài!");
       }
-    } catch {
-      toast.error("Không thể kết nối đến máy chủ.");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Không thể kết nối đến máy chủ.");
     } finally {
       setSubmitting(false);
     }
@@ -37,12 +38,12 @@ export default function SubmitModal({ isOpen, onClose, problemId, problemName, c
       <div className="modal-background" onClick={() => !submitting && onClose()}></div>
       <div className="modal-content">
         <div className="box">
-          <h2 className="title is-4">Nộp bài: {problemName || `Bài ${problemCode}`}</h2>
+          <h2 className="title is-4">Nộp bài: {problemName || `Bài ${problem_code}`}</h2>
           
-          <form onSubmit={handleSubmit} className="is-flex is-flex-direction-column style={{ gap: '12px' }}">
+          <form onSubmit={handleSubmit} className="is-flex is-flex-direction-column" style={{ gap: '12px' }}>
             {/* Language */}
             <div>
-              <label className="label mb-1">Ngôn ngữ</label>
+              <label className="label mb-1">Language</label>
               <div className="select is-fullwidth">
                 <select value={language} onChange={(e) => setLanguage(e.target.value)} disabled={submitting}>
                   <option value="cpp">C++</option>
@@ -56,8 +57,12 @@ export default function SubmitModal({ isOpen, onClose, problemId, problemName, c
             <div>
               <label className="label mb-1">Mã nguồn</label>
               <textarea 
-                className="textarea" rows="12" placeholder="Dán code của bạn vào đây..."
-                value={source} onChange={(e) => setSource(e.target.value)} disabled={submitting}
+                className="textarea" 
+                rows="12" 
+                placeholder="Dán code của bạn vào đây..."
+                value={source} 
+                onChange={(e) => setSource(e.target.value)} 
+                disabled={submitting}
                 style={{ fontFamily: 'monospace' }}
               />
             </div>
@@ -65,7 +70,9 @@ export default function SubmitModal({ isOpen, onClose, problemId, problemName, c
             {/* Button */}
             <div className="buttons is-right mt-2">
               <button type="button" className="button" onClick={onClose} disabled={submitting}>Hủy</button>
-              <button type="submit" className={`button is-primary ${submitting ? 'is-loading' : ''}`} disabled={submitting}>Nộp bài</button>
+              <button type="submit" className={`button is-primary ${submitting ? 'is-loading' : ''}`} disabled={submitting}>
+                Nộp bài
+              </button>
             </div>
           </form>
 

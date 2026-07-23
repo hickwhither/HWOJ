@@ -66,7 +66,7 @@ def check_token(data: BaseConfirmRequest):
     return {"message": "Token is valid"}
 
 
-@router.post("/create-account", status_code=status.HTTP_201_CREATED)
+@router.post("/create-account", status_code=201)
 def confirm_create_account(
     request: Request,
     data: ConfirmCreateAccountRequest,
