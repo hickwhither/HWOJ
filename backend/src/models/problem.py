@@ -18,8 +18,8 @@ class ProblemBase(SQLModel):
     memory_limit: int = Field(default=32768)
     input: Optional[str] = Field()
     output: Optional[str] = Field()
-    programs: Optional[dict[str, str]] = Field(default={}, sa_column=Column(JSON))
-    subtasks: Optional[dict[str, dict[str, Any]]] = Field(default={}, sa_column=Column(JSON))
+    programs: Optional[dict[str, str]] = Field(default_factory=dict, sa_column=Column(JSON))
+    subtasks: Optional[dict[str, dict[str, Any]]] = Field(default_factory=dict, sa_column=Column(JSON))
     
 
 
@@ -29,4 +29,3 @@ class Problem(ProblemBase, table=True):
 
     def __repr__(self):
         return f"Problem({self.code} - {self.name})"
-

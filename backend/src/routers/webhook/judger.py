@@ -9,7 +9,11 @@ from src.database import SessionDep
 from src.models.submission import Submission, SUBMISSION_STATUS
 from src.models.problem import Problem, ProblemBase
 
+# CONFIGURATIONS
+router = APIRouter(prefix="/judger", tags=["webhook.judger"])
 
+
+# SHEMAS
 class SubmissionUpdateResult(BaseModel):
     id: int
     status: str
@@ -18,15 +22,17 @@ class SubmissionUpdateResult(BaseModel):
     error: str | None = None
     test_cases: list[dict[str, Any]] | None = None
 
+
 class SubmissionJudge(BaseModel):
     id: int
     language: str
     source: str
     problem: ProblemBase
 
-active_judgers = {}    
 
-# -- DEPENDENCIES / HELPERS --
+# -- DEPENDENCIES / FUNCTIONS --
+active_judgers = {}
+
 def judge_active(
     request: Request,
     session: SessionDep,
@@ -39,12 +45,10 @@ def judge_active(
     }
     return name
 
+
 ActiveJudge = Depends(judge_active)
 
 # -- ROUTES --
-router = APIRouter(prefix="/judger", tags=["judger"])
-
-
 @router.post("/get-task", response_model=SubmissionJudge|None)
 def get_task(session: SessionDep, judger_name: str = ActiveJudge):
     submission = session.exec(

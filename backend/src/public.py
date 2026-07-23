@@ -8,6 +8,8 @@ class UserPublic(BaseModel):
     username: str
     nickname: str | None
     avatar_url: str | None
+    rating: int | None
+    elo: int | None
     rank: str | None
     badges: list[str]
 
@@ -30,6 +32,21 @@ class ProblemView(ProblemPublic):
     output: str | None
 
 
+# Contest
+class ContestPublic(BaseModel):
+    code: str
+    title: str | None
+    registration_start: datetime | None
+    registration_end: datetime | None
+    start_time: datetime
+    end_time: datetime
+
+
+class ContestView(ContestPublic):
+    description: str | None
+    problems: list[ProblemPublic] = []
+
+
 #Submission
 class SubmissionPublic(BaseModel):
     id: int
@@ -48,8 +65,8 @@ class SubmissionPublic(BaseModel):
     # Cell 3
     time_used: float | None
     memory_used: float | None
+    test_cases: list[dict[str, Any]] | None
 
 
 class SubmissionView(SubmissionPublic):
-    test_cases: list[dict[str, Any]] | None
     source: str

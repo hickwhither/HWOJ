@@ -1,11 +1,22 @@
 from typing import TYPE_CHECKING, Optional
 from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship, Column, JSON
+import random
 
 if TYPE_CHECKING:
     from .problem import Problem
     from .submission import Submission
 
+DEFAULT_AVATARS = [
+    "dolly.webp",
+    "ei_snailchan.webp",
+    "ei_snailien.webp",
+    "nanahira.webp",
+    "seal.webp",
+    "sheep.webp",
+    "Telu.webp",
+    "xchara.webp",
+]
 
 class UserBase(SQLModel):
     # Auth
@@ -17,11 +28,12 @@ class UserBase(SQLModel):
 
     # Profiles
     nickname: Optional[str] = Field()
-    avatar_url: Optional[str] = Field()
+    avatar_url: Optional[str] = Field(default_factory=lambda: "/default-avatars/"+random.choice(DEFAULT_AVATARS))
     bio: Optional[str] = Field()
-    
+    rating: Optional[int] = Field(index=True)
+    elo: Optional[int] = Field(index=True)
     rank: Optional[str] = Field(index=True)
-    badges: list[str] = Field(default=[], sa_column=Column(JSON))
+    badges: list[str] = Field(default_factory=list, sa_column=Column(JSON))
 
     # Permissions
     active: bool = Field(default=True, index=True)
@@ -35,7 +47,7 @@ class UserBase(SQLModel):
 
 class User(UserBase, table=True):
     submissions: list["Submission"] = Relationship(back_populates="user", cascade_delete=True)
-    contest_id: str | None = Field(foreign_key="contest.id", ondelete="SET NULL")
+    contest_id: Optional[str] = Field(foreign_key="contest.id", ondelete="SET NULL")
 
     def __repr__(self):
         return f"User({self.username} {self.email})"

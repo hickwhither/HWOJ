@@ -1,7 +1,6 @@
-import os, importlib, secrets
-from contextlib import asynccontextmanager
+import os
 from fastapi import FastAPI
-
+from fastapi_pagination import add_pagination
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -12,6 +11,7 @@ from .database import *
 def create_app():
     app = FastAPI(title=os.getenv('APP_NAME'), description=f"{os.getenv('APP_NAME')} backend")
     init_db()
+    add_pagination(app)
     
     allow_origins = os.getenv("ALLOWED_ORIGINS").split() + ["localhost:5173", "127.0.0.1:5173"]
     print("ALLOWED ORIGINS", allow_origins)
@@ -38,10 +38,8 @@ def create_app():
     async def favicon():
         return FileResponse("./sigma.jpg")
 
-    from .routers.admin import router as admin_router
     from .routers.user import router as api_router
     from .routers.webhook import router as judger_router
-    app.include_router(admin_router)
     app.include_router(api_router)
     app.include_router(judger_router)
 

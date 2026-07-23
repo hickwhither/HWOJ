@@ -33,19 +33,8 @@ class SUBMISSION_VERDICT(str, Enum):
     ABORTED = "AB"
 
 
-class Submission(SQLModel, table=True):
-    __table_args__ = (
-        Index("idx_user_problem", "user_id", "problem_id"),
-    )
-    
+class SubmissionBase(SQLModel):
     id: Optional[int] = Field(primary_key=True)
-    user_id: str = Field(foreign_key="user.id", ondelete="CASCADE")
-    problem_id: str = Field(foreign_key="problem.id", ondelete="CASCADE")
-    contest_id: str | None = Field(foreign_key="contest.id", ondelete="SET NULL")
-    
-    contest: Optional["Contest"] = Relationship(back_populates="submissions")
-    user: Optional["User"] = Relationship(back_populates="submissions")
-    problem: Optional["Problem"] = Relationship(back_populates="submissions")
 
     date_created: datetime = Field(default_factory=datetime.now, index=True)
     judger_name: Optional[str] = Field(index=True)
@@ -63,3 +52,20 @@ class Submission(SQLModel, table=True):
     language: str = Field(index=True)
     source: str = Field(sa_type=TEXT)
 
+
+class Submission(SubmissionBase, table=True):
+    __table_args__ = (
+        # Filter sort: contest -> user -> problem 
+        Index("idx_user_problem", "user_id", "problem_id"),
+        Index("idx_contest_user", "contest_id", "user_id"),
+    )
+    
+    user_id: int = Field(foreign_key="user.id", ondelete="CASCADE")
+    problem_id: int = Field(foreign_key="problem.id", ondelete="CASCADE", index=True)
+    contest_id: int | None = Field(foreign_key="contest.id", ondelete="SET NULL")
+    
+    contest: Optional["Contest"] = Relationship(back_populates="submissions")
+    user: "User" = Relationship(back_populates="submissions")
+    problem: "Problem" = Relationship(back_populates="submissions")
+
+    

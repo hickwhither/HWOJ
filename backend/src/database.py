@@ -22,7 +22,7 @@ def init_db():
     with Session(engine) as session:
         statement = select(Problem).where(Problem.code=="aplusb")
         results = session.exec(statement)
-        if not results.one_or_none():  # Import meta problem
+        if results.one_or_none() == None:  # Import meta problem
             programs = {}
             if os.path.exists("example/aplusb"):
                 for root, dirs, files in os.walk("example/aplusb"):

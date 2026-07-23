@@ -1,19 +1,13 @@
-from .links import ContestProblemLink, ContestParticipantLink
+from .links import ContestTask, ContestRegistration
 from .user import UserBase, User
 from .problem import ProblemBase, Problem
 from .submission import Submission, SUBMISSION_STATUS, SUBMISSION_VERDICT
 from .contest import ContestBase, Contest
 
 __all__ = [
-    "ContestProblemLink",
-    "ContestParticipantLink",
-    "UserBase",
-    "User",
-    "ProblemBase",
-    "Problem",
-    "Submission",
-    "SUBMISSION_STATUS",
-    "SUBMISSION_VERDICT",
-    "ContestBase",
-    "Contest",
+    "ContestBase", "Contest",
+    "ContestTask", "ContestRegistration",
+    "ProblemBase", "Problem",
+    "Submission", "SUBMISSION_STATUS", "SUBMISSION_VERDICT",
+    "UserBase", "User",
 ]
