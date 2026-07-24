@@ -68,4 +68,9 @@ class Submission(SubmissionBase, table=True):
     user: "User" = Relationship(back_populates="submissions")
     problem: "Problem" = Relationship(back_populates="submissions")
 
-    
+    def __repr__(self):
+        return f"Submission({self.id} - {self.user.username})"
+
+    def __str__(self):
+        return f"{self.id}({self.user.username})"
+

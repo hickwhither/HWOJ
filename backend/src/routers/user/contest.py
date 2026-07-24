@@ -42,10 +42,6 @@ def get_list_contest(session: SessionDep):
 def get_contest(session: SessionDep, code: str, current_user: User = Depends(verify_auth)):
     contest = get_contest_or_404(session, code)
     ensure_can_view_contest(contest, current_user, session)
-    if not is_contest_running(contest):
-        contest_data = ContestView.model_validate(contest)
-        contest_data.problems = None
-        return contest_data
     return contest
 
 
@@ -57,11 +53,7 @@ def register_contest(
     current_user: User = Depends(verify_auth),
 ):
     contest = get_contest_or_404(session, code)
-    now = datetime.now()
-    if contest.registration_start and now < contest.registration_start:
-        raise HTTPException(403, "contest.upcoming")
-    if contest.registration_end and now > contest.registration_end:
-        raise HTTPException(403, "contest.ended")
+    ensure_registration_running(contest)
     if contest.password and payload.password != contest.password:
         raise HTTPException(403, "contest.wrongpassword")
     if not is_contest_participant(session, contest, current_user):

@@ -12,6 +12,10 @@ os.environ.setdefault("ADMIN_USER_MODEL_USERNAME_FIELD", "username")
 os.environ.setdefault("ADMIN_SECRET_KEY", os.getenv("SECRET_KEY", "change-me"))
 os.environ.setdefault("ADMIN_SITE_NAME", f"{os.getenv('APP_NAME', 'HWOJ')} Admin")
 
+os.environ.setdefault("ADMIN_SITE_SIGN_IN_LOGO", "/logo.png")
+os.environ.setdefault("ADMIN_SITE_HEADER_LOGO", "/logo.png")
+os.environ.setdefault("ADMIN_SITE_FAVICON", "/logo.png")
+
 from fastadmin import SqlAlchemyModelAdmin, WidgetType, fastapi_app as admin_app, register
 
 pwd = PasswordHash.recommended()

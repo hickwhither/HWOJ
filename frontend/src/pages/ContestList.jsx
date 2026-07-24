@@ -6,9 +6,11 @@ import { get_request } from '../Request';
 const fetchContests = async ({ page, filter }) => {
   const params = new URLSearchParams({ page });
   if (filter.code) params.append('code', filter.code);
-  if (filter.title) params.append('title', filter.title);
+  if (filter.name) params.append('name', filter.name); // Changed from 'title' to 'name'
+  
   const res = await get_request(`/contest?${params.toString()}`);
-  return res?.data || { contests: [], total_pages: 1 };
+  // Fallback structure adjusted to match the new JSON response
+  return res?.data || { items: [], pages: 1 }; 
 };
 
 const formatDate = (value) => value ? new Date(value).toLocaleString() : '-';
@@ -16,7 +18,7 @@ const formatDate = (value) => value ? new Date(value).toLocaleString() : '-';
 export default function ContestList() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
-  const [filter, setFilter] = useState({ code: '', title: '' });
+  const [filter, setFilter] = useState({ code: '', name: '' }); // Changed 'title' to 'name'
 
   const { data, isLoading, isPlaceholderData } = useQuery({
     queryKey: ['contests', { page, filter }],
@@ -25,8 +27,9 @@ export default function ContestList() {
     placeholderData: (prev) => prev,
   });
 
-  const contests = data?.contests || [];
-  const totalPages = data?.total_pages || 1;
+  // Extract from the new JSON keys
+  const contests = data?.items || []; 
+  const totalPages = data?.pages || 1;
 
   const pagesToShow = useMemo(() => {
     const total = Math.max(1, totalPages);
@@ -59,13 +62,13 @@ export default function ContestList() {
           <thead>
             <tr>
               <th width="20%">Code</th>
-              <th>Title</th>
+              <th>Name</th> {/* Changed Title to Name */}
               <th width="20%">Start</th>
               <th width="20%">End</th>
             </tr>
             <tr>
               <th><input className="input" type="text" placeholder="Filter Code" name="code" value={filter.code} onChange={onFilterChange} /></th>
-              <th><input className="input" type="text" placeholder="Filter Title" name="title" value={filter.title} onChange={onFilterChange} /></th>
+              <th><input className="input" type="text" placeholder="Filter Name" name="name" value={filter.name} onChange={onFilterChange} /></th>
               <th />
               <th />
             </tr>
@@ -76,9 +79,9 @@ export default function ContestList() {
             ) : contests.length === 0 ? (
               <tr><td colSpan={4} className="has-text-centered">No contests match your filters</td></tr>
             ) : contests.map((contest) => (
-              <tr key={contest.code} style={{ cursor: 'pointer' }} onClick={() => navigate(`/contest/${contest.code}`)}>
+              <tr key={contest.code} style={{ cursor: 'pointer' }} onClick={() => navigate(`/c/${contest.code}`)}>
                 <td>{contest.code}</td>
-                <td>{contest.title}</td>
+                <td>{contest.name}</td> {/* Using contest.name instead of contest.title */}
                 <td>{formatDate(contest.start_time)}</td>
                 <td>{formatDate(contest.end_time)}</td>
               </tr>

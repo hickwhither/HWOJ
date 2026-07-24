@@ -24,8 +24,14 @@ class ContestBase(SQLModel):
     password: Optional[str] = Field()
 
 
+
 class Contest(ContestBase, table=True):
     problems: list["Problem"] = Relationship(link_model=ContestTask)
     participants: list["User"] = Relationship(link_model=ContestRegistration)
     submissions: list["Submission"] = Relationship(back_populates="contest")
 
+    def __repr__(self):
+        return f"Contest({self.code} {self.start_time} -> {self.end_time})"
+
+    def __str__(self):
+        return self.code

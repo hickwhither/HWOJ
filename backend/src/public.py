@@ -35,7 +35,7 @@ class ProblemView(ProblemPublic):
 # Contest
 class ContestPublic(BaseModel):
     code: str
-    title: str | None
+    name: str | None
     registration_start: datetime | None
     registration_end: datetime | None
     start_time: datetime

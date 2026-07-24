@@ -6,8 +6,8 @@ import remarkGfm from 'remark-gfm';
 import { get_request, post_request } from '../Request';
 import { toast } from 'react-toastify';
 
-const fetchContest = async (code) => {
-  const res = await get_request(`/contest/${code}`);
+const fetchContest = async (contest_code) => {
+  const res = await get_request(`/contest/${contest_code}`);
   if (res.status !== 200) throw new Error(res.data?.detail || 'Không thể tải contest');
   return res.data;
 };
@@ -15,20 +15,20 @@ const fetchContest = async (code) => {
 const formatDate = (value) => value ? new Date(value).toLocaleString() : '-';
 
 export default function ContestDisplay() {
-  const { code } = useParams();
+  const { contest_code } = useParams();
   const [password, setPassword] = useState('');
   const [registering, setRegistering] = useState(false);
 
   const { data: contest, isLoading, error, refetch } = useQuery({
-    queryKey: ['contest', code],
-    queryFn: () => fetchContest(code),
+    queryKey: ['contest', contest_code],
+    queryFn: () => fetchContest(contest_code),
     staleTime: 1000 * 60 * 5,
   });
 
   const register = async (e) => {
     e.preventDefault();
     setRegistering(true);
-    const res = await post_request(`/contest/${code}/register`, { password });
+    const res = await post_request(`/contest/${contest_code}/register`, { password });
     setRegistering(false);
     if (res.status === 200) {
       toast.success('Đăng ký contest thành công!');
@@ -59,7 +59,7 @@ export default function ContestDisplay() {
       </div>
 
       <div className="column">
-        <h1 className="title">{contest.title || contest.code}</h1>
+        <h1 className="title">{contest.name || contest.code}</h1>
         <div className="content">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{contest.description || ''}</ReactMarkdown>
         </div>
