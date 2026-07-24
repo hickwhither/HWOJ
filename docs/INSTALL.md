@@ -18,21 +18,22 @@ $ sudo mysql
 ```
 
 ```sql
-mariadb> CREATE DATABASE hwoj DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_general_ci;
-mariadb> GRANT ALL PRIVILEGES ON hwoj.* TO 'hwoj'@'localhost' IDENTIFIED BY '<mariadb user password>';
-mariadb> exit
+CREATE DATABASE hwoj DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_general_ci;
+GRANT ALL PRIVILEGES ON hwoj.* TO 'hwoj'@'localhost' IDENTIFIED BY '<mariadb user password>';
+exit
 ```
 
 ### Other useful database commands
 ```sql
 -- List of Databases
-mariadb> SHOW DATABASES WHERE `Database` NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys');
+SHOW DATABASES WHERE `Database` NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys');
 -- List of users
 SELECT User, Host FROM mysql.global_priv;
 
 mariadb-dump -u hwoj -p hwoj > backup_hwoj.sql -- Backup
 mariadb -u root -p hwoj < backup_hwoj.sql -- Restore
-mariadb> DROP DATABASE IF EXISTS hwoj; -- Delete databases
+
+DROP DATABASE IF EXISTS hwoj; -- Delete databases
 ```
 
 ## Setting up backend

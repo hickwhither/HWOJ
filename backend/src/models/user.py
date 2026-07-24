@@ -47,7 +47,7 @@ class UserBase(SQLModel):
 
 class User(UserBase, table=True):
     submissions: list["Submission"] = Relationship(back_populates="user", cascade_delete=True)
-    contest_id: Optional[str] = Field(foreign_key="contest.id", ondelete="SET NULL")
+    contest_id: Optional[int] = Field(foreign_key="contest.id", ondelete="SET NULL")
 
     def __repr__(self):
         return f"User({self.username} {self.email})"
